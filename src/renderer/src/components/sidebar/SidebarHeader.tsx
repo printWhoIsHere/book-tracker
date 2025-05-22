@@ -1,6 +1,6 @@
-import logo from '@/renderer/assets/logo.svg'
+import logo from '@renderer/assets/logo.svg'
 
-export default function SidebarHeader() {
+export function SidebarHeader() {
 	return (
 		<div data-sidebar='header' className='flex items-center gap-2 p-4'>
 			<img src={logo} alt='Logo' className='h-8 w-8' />

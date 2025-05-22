@@ -1,12 +1,13 @@
-import React from 'react'
-import { cn } from '@/renderer/lib/utils'
-import { useSidebar } from '@/renderer/providers/sidebar-provider'
-import { Sheet, SheetContent } from '@/renderer/components/ui/sheet'
-import SidebarHeader from './partials/Header'
-import SidebarContent from './partials/Content'
-import SidebarFooter from './partials/Footer'
+import { Sheet, SheetContent } from '@renderer/components/ui/sheet'
 
-export default function Sidebar() {
+import { useSidebar } from '@renderer/providers/sidebar-provider'
+import { cn } from '@renderer/lib/utils'
+
+import { SidebarHeader } from './SidebarHeader'
+import { SidebarContent } from './SidebarContent'
+import { SidebarFooter } from './SidebarFooter'
+
+export function Sidebar() {
 	const { isMobile, state, openMobile, setOpenMobile } = useSidebar()
 
 	if (isMobile) {
@@ -14,28 +15,52 @@ export default function Sidebar() {
 			<Sheet open={openMobile} onOpenChange={setOpenMobile}>
 				<SheetContent
 					side='left'
-					className='w-72 border-r bg-sidebar text-sidebar-foreground p-0 [&>button]:hidden'
+					className='w-80 border-r bg-sidebar text-sidebar-foreground p-0 [&>button]:hidden'
 				>
-					<SidebarHeader />
-					<SidebarContent />
-					<SidebarFooter />
+					<div className='flex h-full flex-col'>
+						<SidebarHeader />
+						<SidebarContent />
+						<SidebarFooter />
+					</div>
 				</SheetContent>
 			</Sheet>
 		)
 	}
 
 	return (
-		<aside
+		<div
 			data-state={state}
-			className={cn(
-				'group/sidebar fixed inset-y-0 left-0 z-10 flex flex-col border-r bg-sidebar transition-all duration-200',
-				state === 'expanded' ? 'w-64' : 'w-16',
-			)}
-			aria-label='Sidebar navigation'
+			className='group/sidebar hidden text-sidebar-foreground md:block'
 		>
-			<SidebarHeader />
-			<SidebarContent />
-			<SidebarFooter />
-		</aside>
+			{/* Пустышка для push layout-а */}
+			<div
+				className={cn(
+					'relative transition-[width] duration-200 ease-linear',
+					state === 'expanded'
+						? 'w-[--sidebar-width]'
+						: 'w-[--sidebar-width-icon]',
+				)}
+			/>
+
+			{/* Настоящий Sidebar */}
+			<div
+				className={cn(
+					'fixed inset-y-0 left-0 z-10 border-r transition-[width] duration-200 ease-linear md:flex',
+					state === 'expanded'
+						? 'w-[--sidebar-width]'
+						: 'w-[--sidebar-width-icon]',
+				)}
+			>
+				<div
+					data-sidebar='sidebar'
+					data-state={state}
+					className='group flex h-full w-full flex-col bg-sidebar'
+				>
+					<SidebarHeader />
+					<SidebarContent />
+					<SidebarFooter />
+				</div>
+			</div>
+		</div>
 	)
 }

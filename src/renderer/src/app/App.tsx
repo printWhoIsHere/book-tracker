@@ -1,11 +1,11 @@
 import CreateWorkspaceForm from '@renderer/components/CreateWorkspaceForm'
+import { Header } from '@renderer/components/header/Header'
+import { Sidebar } from '@renderer/components/sidebar/Sidebar'
 
 import { useWorkspace } from '@renderer/hooks/useWorkspace'
 
 function App(): JSX.Element {
 	const { workspaces, isLoading } = useWorkspace()
-
-	console.log(workspaces)
 
 	if (isLoading) {
 		return (
@@ -26,13 +26,12 @@ function App(): JSX.Element {
 	}
 
 	return (
-		<div className='bg-wavy-lines w-screen h-screen flex bg-background text-foreground'>
-			{/* <Sidebar /> */}
-			<div className='h-full w-16 bg-muted border-r' />
+		<div className='w-screen h-screen flex bg-background text-foreground overflow-hidden'>
+			<Sidebar />
+			{/* <div className='h-full w-16 bg-muted border-r' /> */}
 
 			<div className='flex flex-col flex-1 overflow-hidden'>
-				{/* <Header /> */}
-				<div className='h-12 w-full bg-muted border-b' />
+				<Header />
 
 				<div className='flex flex-col gap-4 flex-1 w-full h-full p-1 md:p-4'>
 					{/* <DataTable /> */}
