@@ -20,13 +20,10 @@ function RootLayout({ children }: { children: React.ReactNode }): JSX.Element {
 			<ThemeProvider>
 				<TableProvider>
 					<SidebarProvider>
-						<div className='w-screen h-screen flex justify-center items-center bg-background text-foreground'>
-							<ModalProvider />
-							{children}
-						</div>
+						<ModalProvider />
+						{children}
+						<Toaster />
 					</SidebarProvider>
-
-					<Toaster />
 				</TableProvider>
 			</ThemeProvider>
 		</QueryClientProvider>

@@ -1,16 +1,83 @@
+import { z } from 'zod'
 import path from 'path'
 import { app } from 'electron'
 import { is } from '@electron-toolkit/utils'
-import { FileManager } from '@main/utils/file.manager'
 
 export const isDev = is.dev || process.env.NODE_ENV === 'development'
 
-export const rootDir = isDev
-	? path.resolve(__dirname, '../../data')
-	: path.join(app.getPath('userData'), 'data')
-
-app.whenReady().then(() => {
-	const fm = new FileManager()
-	fm.ensureDir('backups')
-	fm.ensureDir('workspaces')
+const ConfigSchema = z.object({
+	isDev: z.boolean(),
+	rootDir: z.string(),
+	window: z.object({
+		width: z.number().default(1280),
+		height: z.number().default(720),
+		minWidth: z.number().default(760),
+		minHeight: z.number().default(420),
+	}),
+	database: z.object({
+		journalMode: z.string().default('WAL'),
+	}),
+	logging: z.object({
+		console: z.object({
+			level: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
+			format: z.string().default('{h}:{i}:{s} | {text}'),
+		}),
+		file: z.object({
+			level: z
+				.enum(['debug', 'info', 'warn', 'error', 'false'])
+				.default('info'),
+			maxSize: z.number().default(10 * 1024 * 1024), // 10MB
+		}),
+	}),
 })
+export type Config = z.infer<typeof ConfigSchema>
+
+class ConfigService {
+	private static instance: ConfigService
+	private config: Config
+
+	private constructor() {
+		const isDev = is.dev || process.env.NODE_ENV === 'development'
+		const rootDir = isDev
+			? path.resolve(__dirname, '../../data')
+			: path.join(app.getPath('userData'), 'data')
+
+		this.config = ConfigSchema.parse({
+			isDev,
+			rootDir,
+			window: {
+				width: 1280,
+				height: 720,
+				minWidth: 760,
+				minHeight: 420,
+			},
+			database: {
+				journalMode: 'WAL',
+			},
+			logging: {
+				console: {
+					level: isDev ? 'debug' : 'info',
+					format: '{h}:{i}:{s} | {text}',
+				},
+				file: {
+					level: isDev ? 'false' : 'info',
+					maxSize: 10 * 1024 * 1024,
+				},
+			},
+		})
+	}
+
+	static getInstance(): ConfigService {
+		if (!ConfigService.instance) {
+			ConfigService.instance = new ConfigService()
+		}
+		return ConfigService.instance
+	}
+
+	get(): Config {
+		return this.config
+	}
+}
+
+export const configService = ConfigService.getInstance()
+export const config = configService.get()

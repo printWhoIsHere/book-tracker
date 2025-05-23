@@ -1,20 +1,23 @@
-import { app } from 'electron'
-import { electronApp } from '@electron-toolkit/utils'
-
+import { app as appElectron } from 'electron'
+import { App } from '@main/core/app'
 import { createWindow } from '@main/core/window'
+import { createLogger } from '@main/core/logger'
 
-import '@main/core/app'
-import '@main/core/config'
+const logger = createLogger('Main')
 
-import '@main/modules/workspace/workspace.controller'
-import { WorkspaceService } from './modules/workspace/workspace.service'
+async function main() {
+	try {
+		await appElectron.whenReady()
 
-app.whenReady().then(() => {
-	electronApp.setAppUserModelId('book-tracking.app')
+		const app = App.getInstance()
+		await app.init()
 
-	// const svc = new WorkspaceService()
-	// svc.create('Default')
-	// svc.create('Default2')
+		createWindow()
+		logger.info('Application started successfully')
+	} catch (error) {
+		logger.error('Failed to start application', error)
+		appElectron.quit()
+	}
+}
 
-	createWindow()
-})
+main()

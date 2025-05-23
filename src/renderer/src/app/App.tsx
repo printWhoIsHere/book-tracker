@@ -1,4 +1,5 @@
 import CreateWorkspaceForm from '@renderer/components/CreateWorkspaceForm'
+import { DataTable } from '@renderer/components/data-table'
 import { Header } from '@renderer/components/header/Header'
 import { Sidebar } from '@renderer/components/sidebar/Sidebar'
 
@@ -9,16 +10,16 @@ function App(): JSX.Element {
 
 	if (isLoading) {
 		return (
-			<div className='w-screen h-screen flex justify-center items-center bg-wavy-lines text-foreground'>
-				Loading...
+			<div className='min-h-screen w-full flex justify-center items-center bg-wavy-lines text-foreground'>
+				<div className='text-lg'>Loading...</div>
 			</div>
 		)
 	}
 
 	if (!workspaces.data.length) {
 		return (
-			<div className='w-screen h-screen flex justify-center items-center bg-wavy-lines'>
-				<div className='w-full max-w-sm md:max-w-3xl'>
+			<div className='min-h-screen w-full flex justify-center items-center bg-wavy-lines'>
+				<div className='w-full max-w-sm md:max-w-3xl px-4'>
 					<CreateWorkspaceForm />
 				</div>
 			</div>
@@ -26,23 +27,26 @@ function App(): JSX.Element {
 	}
 
 	return (
-		<div className='w-screen h-screen flex bg-background text-foreground overflow-hidden'>
+		<div className='min-h-screen w-full flex bg-background text-foreground'>
 			<Sidebar />
-			{/* <div className='h-full w-16 bg-muted border-r' /> */}
 
-			<div className='flex flex-col flex-1 overflow-hidden'>
+			<div className='flex flex-col flex-1 min-h-screen overflow-hidden'>
 				<Header />
 
-				<div className='flex flex-col gap-4 flex-1 w-full h-full p-1 md:p-4'>
-					{/* <DataTable /> */}
-					<div className='w-full h-full border rounded-lg overflow-auto' />
+				<main className='flex flex-col gap-4 flex-1 w-full p-1 md:p-4 overflow-hidden'>
+					{/* Main content area */}
+					<div className='w-full flex-1 border rounded-lg overflow-auto bg-card'>
+						{/* Здесь будет ваш основной контент */}
+						{/* <DataTable /> */}
+					</div>
 
-					{/* DataTable Footer */}
-					<div className='w-full h-12 border rounded-lg' />
-				</div>
+					{/* Footer */}
+					<div className='w-full h-12 border rounded-lg bg-card flex items-center px-4'>
+						{/* Здесь будет footer контент */}
+					</div>
+				</main>
 			</div>
 		</div>
 	)
 }
-
 export default App

@@ -7,6 +7,9 @@ import { SidebarHeader } from './SidebarHeader'
 import { SidebarContent } from './SidebarContent'
 import { SidebarFooter } from './SidebarFooter'
 
+const SIDEBAR_WIDTH_EXPANDED = 280 // 280px
+const SIDEBAR_WIDTH_COLLAPSED = 64 // 64px
+
 export function Sidebar() {
 	const { isMobile, state, openMobile, setOpenMobile } = useSidebar()
 
@@ -27,34 +30,31 @@ export function Sidebar() {
 		)
 	}
 
+	const isExpanded = state === 'expanded'
+	const sidebarWidth = isExpanded
+		? SIDEBAR_WIDTH_EXPANDED
+		: SIDEBAR_WIDTH_COLLAPSED
+
 	return (
 		<div
 			data-state={state}
 			className='group/sidebar hidden text-sidebar-foreground md:block'
 		>
-			{/* Пустышка для push layout-а */}
+			{/* Spacer для push layout-а */}
 			<div
-				className={cn(
-					'relative transition-[width] duration-200 ease-linear',
-					state === 'expanded'
-						? 'w-[--sidebar-width]'
-						: 'w-[--sidebar-width-icon]',
-				)}
+				className='relative transition-all duration-200 ease-linear'
+				style={{ width: `${sidebarWidth}px` }}
 			/>
 
 			{/* Настоящий Sidebar */}
 			<div
-				className={cn(
-					'fixed inset-y-0 left-0 z-10 border-r transition-[width] duration-200 ease-linear md:flex',
-					state === 'expanded'
-						? 'w-[--sidebar-width]'
-						: 'w-[--sidebar-width-icon]',
-				)}
+				className='fixed inset-y-0 left-0 z-10 transition-all duration-200 ease-linear md:flex bg-sidebar'
+				style={{ width: `${sidebarWidth}px` }}
 			>
 				<div
 					data-sidebar='sidebar'
 					data-state={state}
-					className='group flex h-full w-full flex-col bg-sidebar'
+					className='group flex h-full w-full flex-col overflow-hidden'
 				>
 					<SidebarHeader />
 					<SidebarContent />

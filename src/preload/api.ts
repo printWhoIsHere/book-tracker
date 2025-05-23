@@ -1,9 +1,9 @@
 import { ipcRenderer } from 'electron'
-import { type ColumnSpec } from '@main/database/database.schema'
+import { UIColumn } from '@main/modules/workspace/workspace.schema'
 
 const api = {
 	workspace: {
-		create: (name: string, schema?: ColumnSpec[]) =>
+		create: (name: string, schema?: UIColumn[]) =>
 			ipcRenderer.invoke('workspace:create', { name, schema }),
 		list: () => ipcRenderer.invoke('workspace:list'),
 		getActive: () => ipcRenderer.invoke('workspace:getActive'),
