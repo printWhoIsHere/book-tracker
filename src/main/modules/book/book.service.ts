@@ -1,47 +1,46 @@
 import { createLogger } from '@main/core/logger'
 import { NotFoundError, DatabaseError } from '@main/core/errors'
 import { DatabaseManager } from '@main/database/database.manager'
-import { WorkspaceService } from '@main/modules/workspace/workspace.service'
 import type { BookRecord } from '@main/modules/book/book.schema'
+import { getWorkspacePaths } from '@main/utils/workspace'
 
 const logger = createLogger('BookService')
 
 export class BookService {
 	private readonly dbManager: DatabaseManager
-	private readonly wsService: WorkspaceService
 
 	constructor() {
 		this.dbManager = DatabaseManager.getInstance()
-		this.wsService = new WorkspaceService()
 	}
 
 	async create(
 		workspaceId: string,
-		book: Omit<BookRecord, 'id'>,
+		book: Partial<Omit<BookRecord, 'id' | 'createdAt' | 'updatedAt'>>,
 	): Promise<BookRecord> {
-		const dbPath = this.getDbPath(workspaceId)
+		const dbPath = getWorkspacePaths(workspaceId).database
 
 		try {
 			const db = this.dbManager.get(dbPath)
 			const insert = db.prepare(`
 				INSERT INTO books (
-					title, totalVolumes, currentVolume, lastName, firstName, middleName,
+					title, totalVolumes, currentVolume, 
+					lastName, firstName, middleName,
 					genre, content, annotation, year, tags
 				) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 				`)
 
 			const result = insert.run(
-				book.title,
-				book.totalVolumes,
-				book.currentVolume,
-				book.lastName,
-				book.firstName,
-				book.middleName,
-				book.genre,
-				book.content,
-				book.annotation,
-				book.year,
-				book.tags,
+				book.title ?? null,
+				book.totalVolumes ?? null,
+				book.currentVolume ?? null,
+				book.lastName ?? null,
+				book.firstName ?? null,
+				book.middleName ?? null,
+				book.genre ?? null,
+				book.content ?? null,
+				book.annotation ?? null,
+				book.year ?? null,
+				JSON.stringify(book.tags || []),
 			)
 
 			const createdBook = this.getById(
@@ -61,7 +60,7 @@ export class BookService {
 	}
 
 	getById(workspaceId: string, id: number): BookRecord {
-		const dbPath = this.getDbPath(workspaceId)
+		const dbPath = getWorkspacePaths(workspaceId).database
 
 		try {
 			const db = this.dbManager.get(dbPath)
@@ -73,6 +72,7 @@ export class BookService {
 				throw new NotFoundError('Book', id.toString())
 			}
 
+			book.tags = book.tags ? JSON.parse(book.tags as unknown as string) : []
 			return book
 		} catch (error) {
 			if (error instanceof NotFoundError) throw error
@@ -88,9 +88,9 @@ export class BookService {
 	async update(
 		workspaceId: string,
 		id: number,
-		updates: Partial<BookRecord>,
+		updates: Partial<Omit<BookRecord, 'id' | 'createdAt' | 'updatedAt'>>,
 	): Promise<BookRecord> {
-		const dbPath = this.getDbPath(workspaceId)
+		const dbPath = getWorkspacePaths(workspaceId).database
 
 		try {
 			// Проверяем что книга существует
@@ -124,7 +124,7 @@ export class BookService {
 	}
 
 	async delete(workspaceId: string, id: number): Promise<void> {
-		const dbPath = this.getDbPath(workspaceId)
+		const dbPath = getWorkspacePaths(workspaceId).database
 
 		try {
 			// Проверяем что книга существует
@@ -143,7 +143,8 @@ export class BookService {
 			})
 		} catch (error) {
 			if (error instanceof NotFoundError) throw error
-
+			// TODO: Дифференцировать ошибки доступа к ФС (DB locked, permissions) от логических ошибок
+			//       и возвращать разные коды ошибок для фронтенда.
 			logger.error(
 				`Failed to delete book ${id} from workspace ${workspaceId}`,
 				error,
@@ -153,7 +154,7 @@ export class BookService {
 	}
 
 	async getAllBooks(workspaceId: string): Promise<BookRecord[]> {
-		const dbPath = this.getDbPath(workspaceId)
+		const dbPath = getWorkspacePaths(workspaceId).database
 
 		try {
 			const db = this.dbManager.get(dbPath)
@@ -174,92 +175,86 @@ export class BookService {
 		}
 	}
 
-	async getStatistics(workspaceId: string): Promise<{
-		totalBooks: number
-		totalVolumes: number
-		genreDistribution: { genre: string; count: number }[]
-		yearDistribution: { year: number; count: number }[]
-		topAuthors: { author: string; count: number }[]
-	}> {
-		const dbPath = this.getDbPath(workspaceId)
+	// async getStatistics(workspaceId: string): Promise<{
+	// 	totalBooks: number
+	// 	totalVolumes: number
+	// 	genreDistribution: { genre: string; count: number }[]
+	// 	yearDistribution: { year: number; count: number }[]
+	// 	topAuthors: { author: string; count: number }[]
+	// }> {
+	// 	const dbPath = this.getDbPath(workspaceId)
 
-		try {
-			const db = this.dbManager.get(dbPath)
+	// 	try {
+	// 		const db = this.dbManager.get(dbPath)
 
-			// Общее количество книг
-			const totalBooks = (
-				db.prepare('SELECT COUNT(*) as count FROM books').get() as {
-					count: number
-				}
-			).count
+	// 		// Общее количество книг
+	// 		const totalBooks = (
+	// 			db.prepare('SELECT COUNT(*) as count FROM books').get() as {
+	// 				count: number
+	// 			}
+	// 		).count
 
-			// Общее количество томов
-			const totalVolumes =
-				(
-					db.prepare('SELECT SUM(totalVolumes) as sum FROM books').get() as {
-						sum: number
-					}
-				).sum || 0
+	// 		// Общее количество томов
+	// 		const totalVolumes =
+	// 			(
+	// 				db.prepare('SELECT SUM(totalVolumes) as sum FROM books').get() as {
+	// 					sum: number
+	// 				}
+	// 			).sum || 0
 
-			// Распределение по жанрам
-			const genreDistribution = db
-				.prepare(
-					`
-				SELECT genre, COUNT(*) as count 
-				FROM books 
-				WHERE genre IS NOT NULL 
-				GROUP BY genre 
-				ORDER BY count DESC
-			`,
-				)
-				.all() as { genre: string; count: number }[]
+	// 		// Распределение по жанрам
+	// 		const genreDistribution = db
+	// 			.prepare(
+	// 				`
+	// 			SELECT genre, COUNT(*) as count
+	// 			FROM books
+	// 			WHERE genre IS NOT NULL
+	// 			GROUP BY genre
+	// 			ORDER BY count DESC
+	// 		`,
+	// 			)
+	// 			.all() as { genre: string; count: number }[]
 
-			// Распределение по годам
-			const yearDistribution = db
-				.prepare(
-					`
-				SELECT year, COUNT(*) as count 
-				FROM books 
-				WHERE year IS NOT NULL 
-				GROUP BY year 
-				ORDER BY year DESC
-			`,
-				)
-				.all() as { year: number; count: number }[]
+	// 		// Распределение по годам
+	// 		const yearDistribution = db
+	// 			.prepare(
+	// 				`
+	// 			SELECT year, COUNT(*) as count
+	// 			FROM books
+	// 			WHERE year IS NOT NULL
+	// 			GROUP BY year
+	// 			ORDER BY year DESC
+	// 		`,
+	// 			)
+	// 			.all() as { year: number; count: number }[]
 
-			// Топ авторы
-			const topAuthors = db
-				.prepare(
-					`
-				SELECT (lastName || ', ' || firstName) as author, COUNT(*) as count 
-				FROM books 
-				WHERE lastName IS NOT NULL AND firstName IS NOT NULL
-				GROUP BY lastName, firstName 
-				ORDER BY count DESC 
-				LIMIT 10
-			`,
-				)
-				.all() as { author: string; count: number }[]
+	// 		// Топ авторы
+	// 		const topAuthors = db
+	// 			.prepare(
+	// 				`
+	// 			SELECT (lastName || ', ' || firstName) as author, COUNT(*) as count
+	// 			FROM books
+	// 			WHERE lastName IS NOT NULL AND firstName IS NOT NULL
+	// 			GROUP BY lastName, firstName
+	// 			ORDER BY count DESC
+	// 			LIMIT 10
+	// 		`,
+	// 			)
+	// 			.all() as { author: string; count: number }[]
 
-			return {
-				totalBooks,
-				totalVolumes,
-				genreDistribution,
-				yearDistribution,
-				topAuthors,
-			}
-		} catch (error) {
-			logger.error(
-				`Failed to get workspace statistics for ${workspaceId}`,
-				error,
-			)
-			throw new DatabaseError('Failed to retrieve statistics', error)
-		}
-	}
-
-	private getDbPath(workspaceId: string): string {
-		// Валидируем что workspace существует
-		this.wsService.getById(workspaceId)
-		return `workspaces/${workspaceId}/database.db`
-	}
+	// 		return {
+	// 			totalBooks,
+	// 			totalVolumes,
+	// 			genreDistribution,
+	// 			yearDistribution,
+	// 			topAuthors,
+	// 		}
+	// 	} catch (error) {
+	// 		logger.error(
+	// 			`Failed to get workspace statistics for ${workspaceId}`,
+	// 			error,
+	// 		)
+	// 		throw new DatabaseError('Failed to retrieve statistics', error)
+	// 	}
+	// }
 }

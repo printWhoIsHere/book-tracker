@@ -1,23 +1,37 @@
 import { z } from 'zod'
 
-const BookRecordSchema = z.object({
+export const BookRecordSchema = z.object({
 	id: z.number(),
-	title: z.string().nullable().optional(),
-	totalVolumes: z.number().nullable().optional(),
-	currentVolume: z.number().nullable().optional(),
-	lastName: z.string().nullable().optional(),
-	firstName: z.string().nullable().optional(),
-	middleName: z.string().nullable().optional(),
-	genre: z.string().nullable().optional(),
-	content: z.string().nullable().optional(),
-	annotation: z.string().nullable().optional(),
-	year: z.number().nullable().optional(),
-	tags: z.array(z.string()).optional().default([]),
+	title: z.string().nullable(),
+	totalVolumes: z.number().nullable(),
+	currentVolume: z.number().nullable(),
+	lastName: z.string().nullable(),
+	firstName: z.string().nullable(),
+	middleName: z.string().nullable(),
+	genre: z.string().nullable(),
+	content: z.string().nullable(),
+	annotation: z.string().nullable(),
+	year: z.number().nullable(),
+	tags: z.array(z.string()).default([]),
+	createdAt: z.string().optional(),
+	updatedAt: z.string().optional(),
 })
+export const BookIdSchema = z.object({
+	workspaceId: z.string().uuid(),
+	id: z.number().int().positive(),
+})
+export const BookAddSchema = BookRecordSchema.omit({ id: true }).partial()
+export const BookUpdateSchema = BookRecordSchema.partial()
+
 export type BookRecord = z.infer<typeof BookRecordSchema>
-
-const BookAddSchema = BookRecordSchema.omit({ id: true }).partial()
+export type BookId = z.infer<typeof BookIdSchema>
 export type BookAdd = z.infer<typeof BookAddSchema>
-
-const BookUpdateSchema = BookRecordSchema.partial()
 export type BookUpdate = z.infer<typeof BookUpdateSchema>
+
+//
+
+export interface DeleteManyResult {
+	id: number
+	success: boolean
+	error?: string
+}

@@ -45,6 +45,9 @@ export class WorkspaceRepository implements IWorkspaceRepository {
 
 	listWorkspaces(): WorkspaceRecord[] {
 		try {
+			// TODO: Если globalStoreManager хранит устаревший JSON (мануальное редактирование файла),
+			//       надо валидировать схему и, при ошибке, пересоздавать defaults.
+
 			return globalStoreManager.getWorkspaces()
 		} catch (error) {
 			logger.error(`Failed to list workspaces`, error)
@@ -65,7 +68,7 @@ export class WorkspaceRepository implements IWorkspaceRepository {
 	addWorkspace(record: WorkspaceRecord): void {
 		try {
 			const workspaces = this.listWorkspaces()
-
+			// TODO: Помимо проверки имени, стоит проверять на существование конфликта ID.
 			validateWorkspaceLimit(workspaces)
 			validateUniqueWorkspaceName(workspaces, record.name)
 
@@ -109,6 +112,8 @@ export class WorkspaceRepository implements IWorkspaceRepository {
 		try {
 			const workspaces = this.listWorkspaces()
 			validateWorkspaceExists(workspaces, id)
+			// TODO: Перед удалением из store проверить, что файл настроек settings.json
+			//       и БД действительно удалены, иначе может утечь папка с данными.
 
 			const success = globalStoreManager.removeWorkspace(id)
 			if (!success) {

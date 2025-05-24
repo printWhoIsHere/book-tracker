@@ -1,11 +1,12 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTypedMutation } from '@renderer/lib/react-query'
 
 const WORKSPACES_KEY = ['workspaces']
 const ACTIVE_KEY = ['workspace', 'active']
-const SETTINGS_KEY = ['workspace', 'settings']
 
 export function useWorkspace() {
+	const qc = useQueryClient()
+
 	const {
 		data: workspaces = [],
 		isLoading: isLoadingList,
@@ -13,7 +14,7 @@ export function useWorkspace() {
 		refetch: refetchList,
 	} = useQuery({
 		queryKey: WORKSPACES_KEY,
-		queryFn: () => window.api.workspace.list(),
+		queryFn: () => window.api.workspace.list() as Promise<string[]>,
 	})
 
 	const {
@@ -23,7 +24,7 @@ export function useWorkspace() {
 		refetch: refetchActive,
 	} = useQuery({
 		queryKey: ACTIVE_KEY,
-		queryFn: () => window.api.workspace.getActive(),
+		queryFn: () => window.api.workspace.getActive() as Promise<string | null>,
 		enabled: Boolean(workspaces.length),
 	})
 
@@ -33,6 +34,9 @@ export function useWorkspace() {
 			queryKey: WORKSPACES_KEY,
 			successMessage: 'Workspace created',
 			errorMessage: 'Failed to create workspace',
+			onSuccess: () => {
+				qc.invalidateQueries({ queryKey: WORKSPACES_KEY })
+			},
 		},
 	)
 
@@ -42,6 +46,9 @@ export function useWorkspace() {
 			queryKey: WORKSPACES_KEY,
 			successMessage: 'Active workspace updated',
 			errorMessage: 'Failed to set active workspace',
+			onSuccess: () => {
+				qc.invalidateQueries({ queryKey: ACTIVE_KEY })
+			},
 		},
 	)
 
@@ -52,15 +59,21 @@ export function useWorkspace() {
 			queryKey: WORKSPACES_KEY,
 			successMessage: 'Workspace updated',
 			errorMessage: 'Failed to update workspace',
+			onSuccess: () => {
+				qc.invalidateQueries({ queryKey: WORKSPACES_KEY })
+			},
 		},
 	)
 
-	const deleteWorkspace = useTypedMutation(
-		(id: string) => window.api.workspace.delete(id),
+	const remove = useTypedMutation(
+		(id: string) => window.api.workspace.remove(id),
 		{
 			queryKey: WORKSPACES_KEY,
 			successMessage: 'Workspace deleted',
 			errorMessage: 'Failed to delete workspace',
+			onSuccess: () => {
+				qc.invalidateQueries({ queryKey: WORKSPACES_KEY })
+			},
 		},
 	)
 
@@ -71,6 +84,9 @@ export function useWorkspace() {
 			queryKey: WORKSPACES_KEY,
 			successMessage: 'Settings updated',
 			errorMessage: 'Failed to update settings',
+			onSuccess: () => {
+				qc.invalidateQueries({ queryKey: WORKSPACES_KEY })
+			},
 		},
 	)
 
@@ -91,13 +107,13 @@ export function useWorkspace() {
 		create: create.mutate,
 		setActive: setActive.mutate,
 		update: update.mutate,
-		delete: deleteWorkspace.mutate,
+		delete: remove.mutate,
 		updateSettings: updateSettings.mutate,
 
 		isCreating: create.isPending,
 		isSettingActive: setActive.isPending,
 		isUpdating: update.isPending,
-		isDeleting: deleteWorkspace.isPending,
+		isDeleting: remove.isPending,
 		isUpdatingSettings: updateSettings.isPending,
 	}
 }

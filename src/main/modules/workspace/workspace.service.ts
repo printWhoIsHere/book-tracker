@@ -52,6 +52,8 @@ export class WorkspaceService {
 			logger.error(`Failed to create workspace: ${id}`, error)
 
 			try {
+				// TODO: Проверить, что на диске не осталось артефактов (напр. случайно созданный каталог или БД),
+				//       и удалять их до попытки восстановить консистентность.
 				const existingWorkspaces = this.repo.listWorkspaces()
 				if (existingWorkspaces.some((w) => w.id === id)) {
 					this.repo.removeWorkspace(id)
@@ -79,6 +81,9 @@ export class WorkspaceService {
 	}
 
 	list(): WorkspaceRecord[] {
+		// TODO: Сделать проверку наличия реальных папок/файлов на диске и фильтровать
+		//       workspaces, которых нет в data/workspaces. Сейчас список чисто из store.
+
 		return this.repo.listWorkspaces()
 	}
 
@@ -86,12 +91,16 @@ export class WorkspaceService {
 		const activeId = this.repo.getActiveId()
 		if (!activeId) return null
 
+		// TODO: После удаления файлов папки воркспейса, store всё ещё может содержать ID.
+		//       Надо проверять, существует ли папка в fileManager, иначе clearActive.
+
 		const workspace = this.repo.listWorkspaces().find((w) => w.id === activeId)
 		return workspace || null
 	}
 
 	setActive(id: string): void {
 		const workspaces = this.repo.listWorkspaces()
+		// TODO: Здесь нужно ещё проверять, что папка data/workspaces/{id} действительно существует.
 		validateWorkspaceExists(workspaces, id)
 		this.repo.setActiveId(id)
 	}

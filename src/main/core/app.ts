@@ -34,7 +34,7 @@ export class App {
 		// Импорт контроллеров IPC
 		await import('@main/modules/workspace/workspace.controller')
 		// await import('@main/modules/backup/backup.controller')
-		// await import('@main/modules/book/book.controller')
+		await import('@main/modules/book/book.controller')
 
 		this.isReady = true
 		logger.info('Application initialized successfully')

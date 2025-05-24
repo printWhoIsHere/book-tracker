@@ -15,6 +15,7 @@ import { TablePagination } from './data-table-pagination'
 import { TableContainer } from './data-table-container'
 import { VirtualizedTableBody } from './data-table-body'
 import { TableHeader } from './data-table-header'
+import { useBook } from '@renderer/hooks/useBook'
 
 const data: Payment[] = [
 	{
@@ -110,7 +111,10 @@ const data: Payment[] = [
 ]
 
 export function DataTable() {
-	const {} = useWorkspace()
+	const { activeWorkspace } = useWorkspace()
+	console.log('Active >>> ', activeWorkspace)
+	const { books, isLoading } = useBook()
+
 	const [sorting, setSorting] = useState<SortingState>([])
 
 	const tableContainerRef = useRef<HTMLDivElement>(null)
