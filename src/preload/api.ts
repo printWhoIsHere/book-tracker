@@ -1,23 +1,24 @@
 import { ipcRenderer } from 'electron'
-import { UIColumn } from '@main/modules/workspace/workspace.schema'
 
 const api = {
 	workspace: {
-		create: (name: string, schema?: UIColumn[]) =>
-			ipcRenderer.invoke('workspace:create', { name, schema }),
+		create: (name: string) => ipcRenderer.invoke('workspace:create', { name }),
 		list: () => ipcRenderer.invoke('workspace:list'),
-		getActive: () => ipcRenderer.invoke('workspace:getActive'),
+		getActive: () => ipcRenderer.invoke('workspace:get-active'),
 		setActive: (id: string) =>
-			ipcRenderer.invoke('workspace:setActive', { id }),
+			ipcRenderer.invoke('workspace:set-active', { id }),
+		getById: (id: string) => ipcRenderer.invoke('workspace:get-by-id', { id }),
+		update: (id: string, updates: any) =>
+			ipcRenderer.invoke('workspace:update', { id, updates }),
 		delete: (id: string) => ipcRenderer.invoke('workspace:delete', { id }),
-		rename: (id: string, newName: string) =>
-			ipcRenderer.invoke('workspace:rename', { id, newName }),
 		getSettings: (id: string) =>
-			ipcRenderer.invoke('workspace:getSettings', { id }),
-		updateSettings: (id: string, patch: any) =>
-			ipcRenderer.invoke('workspace:updateSettings', { id, patch }),
-		getColumns: (id: string, table: string) =>
-			ipcRenderer.invoke('workspace:getColumns', { id, table }),
+			ipcRenderer.invoke('workspace:get-settings', { id }),
+		updateSettings: (id: string, settings: any) =>
+			ipcRenderer.invoke('workspace:update-settings', { id, settings }),
+		export: (id: string) => ipcRenderer.invoke('workspace:export', { id }),
+		getSize: (id: string) => ipcRenderer.invoke('workspace:get-size', { id }),
+		getStats: (id: string) => ipcRenderer.invoke('workspace:get-stats', { id }),
+		vacuumDb: (id: string) => ipcRenderer.invoke('workspace:vacuum-db', { id }),
 	},
 }
 

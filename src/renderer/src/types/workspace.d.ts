@@ -1,14 +1,19 @@
-type UIColumnType =
-	| 'InputText'
-	| 'InputTextarea'
-	| 'InputNumber'
-	| 'Select'
-	| 'MultiSelect'
-	| 'Date'
+interface Workspace {
+	id: string
+	name: string
+	createdAt: string
+	updatedAt: string
+	isActive?: boolean
+}
 
-type UIColumn = {
-	key: string
-	label: string
-	type: UIColumnType
-	required: boolean
+interface CreateWorkspaceParams {
+	name: string
+	schema?: any[]
+}
+
+interface WorkspaceStats {
+	id: string
+	size: number
+	tableCount: number
+	recordCount: number
 }

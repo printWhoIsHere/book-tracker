@@ -22,13 +22,12 @@ export function useWorkspace() {
 		refetch: refetchActive,
 	} = useQuery({
 		queryKey: ACTIVE_KEY,
-		queryFn: () => window.api.workspace.getActive() as Promise<string | null>,
+		queryFn: () => window.api.workspace.getActive(),
 		enabled: Boolean(workspaces.length),
 	})
 
 	const create = useTypedMutation(
-		({ name, schema }: { name: string; schema?: any[] }) =>
-			window.api.workspace.create(name, schema),
+		({ name }: { name: string }) => window.api.workspace.create(name),
 		{
 			queryKey: WORKSPACES_KEY,
 			successMessage: 'Workspace created',
@@ -39,34 +38,65 @@ export function useWorkspace() {
 	const setActive = useTypedMutation(
 		(id: string) => window.api.workspace.setActive(id),
 		{
-			queryKey: ACTIVE_KEY,
-			successMessage: 'Активный Workspace обновлён',
-			errorMessage: 'Ошибка при смене активного Workspace',
+			queryKey: WORKSPACES_KEY,
+			successMessage: 'Active workspace updated',
+			errorMessage: 'Failed to set active workspace',
+		},
+	)
+
+	const update = useTypedMutation(
+		({ id, updates }: { id: string; updates: any }) =>
+			window.api.workspace.update(id, updates),
+		{
+			queryKey: WORKSPACES_KEY,
+			successMessage: 'Workspace updated',
+			errorMessage: 'Failed to update workspace',
+		},
+	)
+
+	const deleteWorkspace = useTypedMutation(
+		(id: string) => window.api.workspace.delete(id),
+		{
+			queryKey: WORKSPACES_KEY,
+			successMessage: 'Workspace deleted',
+			errorMessage: 'Failed to delete workspace',
+		},
+	)
+
+	const updateSettings = useTypedMutation(
+		({ id, settings }: { id: string; settings: any }) =>
+			window.api.workspace.updateSettings(id, settings),
+		{
+			queryKey: WORKSPACES_KEY,
+			successMessage: 'Settings updated',
+			errorMessage: 'Failed to update settings',
 		},
 	)
 
 	return {
-		// данные
 		workspaces,
 		activeWorkspace,
 
-		// состояния загрузки
 		isLoadingList,
 		isLoadingActive,
 		isLoading: isLoadingList || isLoadingActive,
 
-		// ошибки
 		listError,
 		activeError,
 
-		// перезапрос
 		refetchList,
 		refetchActive,
 
-		// операции
 		create: create.mutate,
 		setActive: setActive.mutate,
+		update: update.mutate,
+		delete: deleteWorkspace.mutate,
+		updateSettings: updateSettings.mutate,
+
 		isCreating: create.isPending,
 		isSettingActive: setActive.isPending,
+		isUpdating: update.isPending,
+		isDeleting: deleteWorkspace.isPending,
+		isUpdatingSettings: updateSettings.isPending,
 	}
 }

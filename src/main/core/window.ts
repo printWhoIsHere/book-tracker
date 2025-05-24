@@ -1,20 +1,26 @@
 import { BrowserWindow, shell } from 'electron'
 import { join } from 'path'
 import { is } from '@electron-toolkit/utils'
+
 import icon from '../../../resources/icon.png?asset'
+
+import { config } from '@main/core/config'
 
 export function createWindow(): void {
 	const mainWindow = new BrowserWindow({
-		width: 1280,
-		height: 720,
-		minWidth: 760,
-		minHeight: 420,
+		width: config.window.width,
+		height: config.window.height,
+		minWidth: config.window.minWidth,
+		minHeight: config.window.minHeight,
 		show: false,
 		autoHideMenuBar: true,
+		titleBarStyle: 'default' as const,
 		icon: process.platform === 'linux' ? icon : undefined,
 		webPreferences: {
 			preload: join(__dirname, '../preload/index.mjs'),
 			sandbox: false,
+			nodeIntegration: false,
+			contextIsolation: true,
 		},
 	})
 

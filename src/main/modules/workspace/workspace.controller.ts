@@ -2,114 +2,138 @@ import { z } from 'zod'
 import { handleIpc } from '@main/utils/ipc'
 import { createLogger } from '@main/core/logger'
 import { WorkspaceService } from './workspace.service'
-import { UIColumnSchema, WorkspaceSettingsSchema } from './workspace.schema'
+import {
+	CreateWorkspaceSchema,
+	UpdateWorkspaceSchema,
+	WorkspaceIdSchema,
+	UpdateSettingsSchema,
+} from './workspace.schema'
 
 const logger = createLogger('WorkspaceController')
 const workspaceService = new WorkspaceService()
 
-const WorkspaceIdSchema = z.object({
-	id: z.string().uuid('Invalid workspace ID'),
-})
-
-const CreateWorkspaceSchema = z.object({
-	name: z.string().min(1, 'Workspace name required').trim(),
-	description: z.string().max(500).optional(),
-	schema: z.array(UIColumnSchema).optional(),
-})
-
-const UpdateWorkspaceSchema = z.object({
-	id: z.string().uuid(),
-	name: z.string().min(1).trim().optional(),
-	description: z.string().max(500).optional(),
-	tags: z.array(z.string()).optional(),
-})
-
-const UpdateSettingsSchema = z.object({
-	id: z.string().uuid(),
-	settings: WorkspaceSettingsSchema.partial(),
-})
-
-const GetColumnsSchema = z.object({
-	id: z.string().uuid(),
-	table: z.string().min(1, 'Table name required'),
-})
-
+// Core workspace operations
 handleIpc('workspace:create', CreateWorkspaceSchema, async (_, data) => {
-	logger.info('Creating workspace', { name: data.name })
-	return await workspaceService.create(data.name, data.description, data.schema)
+	try {
+		const id = await workspaceService.create(data.name)
+		logger.info('Workspace created', { id, name: data.name })
+		return { id, success: true }
+	} catch (error) {
+		logger.error('Failed to create workspace', { name: data.name, error })
+		throw error
+	}
 })
 
-handleIpc('workspace:list', null, (_, __) => {
-	logger.debug('Listing workspaces')
+handleIpc('workspace:list', null, () => {
 	return workspaceService.list()
 })
 
-handleIpc('workspace:get', WorkspaceIdSchema, (_, { id }) => {
-	logger.debug('Getting workspace', { id })
-	return workspaceService.getById(id)
-})
-
-handleIpc('workspace:update', UpdateWorkspaceSchema, async (_, data) => {
-	logger.info('Updating workspace', { id: data.id })
-	return await workspaceService.update(data.id, data)
-})
-
-handleIpc('workspace:delete', WorkspaceIdSchema, async (_, { id }) => {
-	logger.info('Deleting workspace', { id })
-	await workspaceService.delete(id)
-	return { success: true }
-})
-
-// Active workspace management
-handleIpc('workspace:getActive', null, (_, __) => {
-	logger.debug('Getting active workspace')
+handleIpc('workspace:get-active', null, () => {
 	return workspaceService.getActive()
 })
 
-handleIpc('workspace:setActive', WorkspaceIdSchema, (_, { id }) => {
-	logger.info('Setting active workspace', { id })
-	workspaceService.setActive(id)
-	return { success: true }
+handleIpc('workspace:set-active', WorkspaceIdSchema, (_, data) => {
+	try {
+		workspaceService.setActive(data.id)
+		logger.info('Active workspace changed', { id: data.id })
+		return { success: true }
+	} catch (error) {
+		logger.error('Failed to set active workspace', { id: data.id, error })
+		throw error
+	}
 })
 
-// Settings management
-handleIpc('workspace:getSettings', WorkspaceIdSchema, (_, { id }) => {
-	logger.debug('Getting workspace settings', { id })
-	return workspaceService.getSettings(id)
+handleIpc('workspace:get-by-id', WorkspaceIdSchema, (_, data) => {
+	return workspaceService.getById(data.id)
 })
 
 handleIpc(
-	'workspace:updateSettings',
-	UpdateSettingsSchema,
-	async (_, { id, settings }) => {
-		logger.info('Updating workspace settings', { id })
-		await workspaceService.updateSettings(id, settings)
-		return { success: true }
+	'workspace:update',
+	z.object({
+		id: z.string().uuid(),
+		updates: UpdateWorkspaceSchema,
+	}),
+	async (_, data) => {
+		try {
+			const workspace = await workspaceService.update(data.id, data.updates)
+			logger.info('Workspace updated', { id: data.id })
+			return workspace
+		} catch (error) {
+			logger.error('Failed to update workspace', { id: data.id, error })
+			throw error
+		}
 	},
 )
 
-// Database operations
-handleIpc('workspace:getColumns', GetColumnsSchema, (_, { id, table }) => {
-	logger.debug('Getting table columns', { id, table })
-	return workspaceService.getColumns(id, table)
+handleIpc('workspace:delete', WorkspaceIdSchema, async (_, data) => {
+	try {
+		await workspaceService.delete(data.id)
+		logger.info('Workspace deleted', { id: data.id })
+		return { success: true }
+	} catch (error) {
+		logger.error('Failed to delete workspace', { id: data.id, error })
+		throw error
+	}
 })
 
-// TODO: Utility operations
-// handleIpc('workspace:export', WorkspaceIdSchema, async (_, { id }) => {
-// 	logger.info('Exporting workspace', { id })
-// 	return await workspaceService.exportWorkspace(id)
-// })
+// Settings operations
+handleIpc('workspace:get-settings', WorkspaceIdSchema, (_, data) => {
+	return workspaceService.getSettings(data.id)
+})
 
-// handleIpc(
-// 	'workspace:import',
-// 	z.object({
-// 		data: z.any(),
-// 		overwrite: z.boolean().default(false),
-// 	}),
-// 	async (_, { data, overwrite }) => {
-// 		logger.info('Importing workspace', { overwrite })
-// 		return await workspaceService.importWorkspace(data, overwrite)
-// 	},
-// )
+handleIpc(
+	'workspace:update-settings',
+	UpdateSettingsSchema,
+	async (_, data) => {
+		try {
+			await workspaceService.updateSettings(data.id, data.settings)
+			logger.info('Workspace settings updated', { id: data.id })
+			return { success: true }
+		} catch (error) {
+			logger.error('Failed to update workspace settings', {
+				id: data.id,
+				error,
+			})
+			throw error
+		}
+	},
+)
 
-logger.info('Workspace IPC handlers registered')
+// Utility operations
+handleIpc('workspace:export', WorkspaceIdSchema, async (_, data) => {
+	return await workspaceService.exportWorkspace(data.id)
+})
+
+handleIpc('workspace:get-size', WorkspaceIdSchema, async (_, data) => {
+	return await workspaceService.getWorkspaceSize(data.id)
+})
+
+handleIpc('workspace:get-stats', WorkspaceIdSchema, async (_, data) => {
+	try {
+		const [size, dbStats] = await Promise.all([
+			workspaceService.getWorkspaceSize(data.id),
+			workspaceService.getDatabaseStats(data.id),
+		])
+
+		return {
+			size,
+			...dbStats,
+			id: data.id,
+		}
+	} catch (error) {
+		logger.error('Failed to get workspace stats', { id: data.id, error })
+		throw error
+	}
+})
+
+// Database operations
+handleIpc('workspace:vacuum-db', WorkspaceIdSchema, async (_, data) => {
+	try {
+		await workspaceService.vacuumDatabase(data.id)
+		logger.info('Database vacuumed', { id: data.id })
+		return { success: true }
+	} catch (error) {
+		logger.error('Failed to vacuum database', { id: data.id, error })
+		throw error
+	}
+})

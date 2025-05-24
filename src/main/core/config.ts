@@ -16,6 +16,9 @@ const ConfigSchema = z.object({
 	}),
 	database: z.object({
 		journalMode: z.string().default('WAL'),
+		synchronous: z.string().default('NORMAL'),
+		cache_size: z.string().default('10000'),
+		temp_store: z.string().default('MEMORY'),
 	}),
 	logging: z.object({
 		console: z.object({
@@ -53,6 +56,9 @@ class ConfigService {
 			},
 			database: {
 				journalMode: 'WAL',
+				synchronous: 'NORMAL',
+				cache_size: '10000',
+				temp_store: 'MEMORY',
 			},
 			logging: {
 				console: {

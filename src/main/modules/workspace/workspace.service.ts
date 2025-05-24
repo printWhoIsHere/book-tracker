@@ -1,22 +1,21 @@
 import { v4 as uuidv4 } from 'uuid'
 
-import {
-	ConflictError,
-	NotFoundError,
-	ValidationError,
-} from '@main/core/errors'
-import { store } from '@main/core/store'
+import { NotFoundError } from '@main/core/errors'
+import { config } from '@main/core/config'
 import { createLogger } from '@main/core/logger'
 import { FileManager } from '@main/utils/file.manager'
 import { DatabaseManager } from '@main/database/database.manager'
-import { ColumnType, type ColumnSpec } from '@main/database/database.schema'
 
+import {
+	getWorkspacePaths,
+	validateWorkspaceExists,
+	validateUniqueWorkspaceName,
+	validateWorkspaceLimit,
+} from '@main/utils/workspace'
 import {
 	WorkspaceRecord,
 	WorkspaceSettings,
-	type UIColumnType,
-	UIColumn,
-	defaultSchema,
+	DeepPartial,
 } from './workspace.schema'
 import { WorkspaceRepository } from './workspace.repository'
 
@@ -28,49 +27,46 @@ export class WorkspaceService {
 	private readonly repo: WorkspaceRepository
 
 	constructor() {
-		this.fileManager = new FileManager()
+		this.fileManager = new FileManager('', config.rootDir)
 		this.dbManager = DatabaseManager.getInstance()
 		this.repo = new WorkspaceRepository()
 	}
 
-	async create(name: string, uiSchema?: UIColumn[]): Promise<string> {
-		// Проверка уникальности имени
-		if (this.repo.listWorkspaces().some((w) => w.name === name)) {
-			throw new ConflictError(`Workspace "${name}" already exists`)
-		}
+	async create(name: string): Promise<string> {
+		const workspaces = this.repo.listWorkspaces()
 
-		const id = uuidv4()
-		const now = new Date().toISOString()
+		validateWorkspaceLimit(workspaces)
+		validateUniqueWorkspaceName(workspaces, name)
+
+		const id = uuidv4(),
+			now = new Date().toISOString(),
+			record: WorkspaceRecord = { id, name, createdAt: now }
 
 		try {
-			// Создаём запись workspace
-			const record: WorkspaceRecord = { id, name, createdAt: now }
 			this.repo.addWorkspace(record)
 			this.repo.setActiveId(id)
 
 			logger.info(`Create workspace: ${id}`)
 
-			// Настройка схемы
-			const schema = uiSchema?.length ? uiSchema : defaultSchema
-			await this.updateTableSchema(id, schema)
+			const paths = getWorkspacePaths(id)
+			await this.dbManager.create(paths.relativeDatabasePath, 'books')
 
-			// Создаём DB
-			const dbSchema = this.convertUISchemaToDbSchema(schema)
-			const dbPath = `workspaces/${id}/database.db`
-			await this.dbManager.create(dbPath, 'books', dbSchema)
-
-			logger.info(`Database created for workspace: ${id}`)
+			logger.info(`Workspace created successfully: ${id} (${name})`)
 			return id
 		} catch (error) {
 			// Rollback при ошибке
 			try {
 				this.repo.removeWorkspace(id)
-				this.fileManager.delete(`workspaces/${id}`)
+				await this.fileManager.delete(`workspaces/${id}`)
 			} catch (error) {
 				logger.error(`Failed to rollback workspace creation: ${id}`)
 			}
 			throw error
 		}
+	}
+
+	list(): WorkspaceRecord[] {
+		return this.repo.listWorkspaces()
 	}
 
 	getActive(): WorkspaceRecord | null {
@@ -82,119 +78,144 @@ export class WorkspaceService {
 	}
 
 	setActive(id: string): void {
-		this.validateWorkspaceExists(id)
+		const workspaces = this.repo.listWorkspaces()
+		validateWorkspaceExists(workspaces, id)
 		this.repo.setActiveId(id)
-		logger.info(`Active workspace set to: ${id}`)
 	}
 
-	list(): WorkspaceRecord[] {
-		return this.repo.listWorkspaces()
-	}
-
-	async delete(id: string): Promise<void> {
-		const workspace = this.repo.listWorkspaces().find((w) => w.id === id)
+	getById(id: string): WorkspaceRecord {
+		const workspace = this.repo.findWorkspaceById(id)
 		if (!workspace) {
 			throw new NotFoundError('Workspace', id)
 		}
+		return workspace
+	}
+
+	async update(
+		id: string,
+		updates: Partial<WorkspaceRecord>,
+	): Promise<WorkspaceRecord> {
+		const workspaces = this.repo.listWorkspaces()
+		validateWorkspaceExists(workspaces, id)
+
+		if (updates.name) {
+			validateUniqueWorkspaceName(workspaces, updates.name, id)
+		}
+
+		const updateData = {
+			...updates,
+			updatedAt: new Date().toISOString(),
+		}
+
+		this.repo.updateWorkspace(id, updateData)
+		logger.info(`Workspace updated: ${id}`)
+
+		return this.getById(id)
+	}
+
+	async delete(id: string): Promise<void> {
+		const workspace = this.getById(id)
 
 		try {
-			this.dbManager.close(`workspaces/${id}/database.db`)
-			this.fileManager.delete(`workspaces/${id}`)
+			const paths = getWorkspacePaths(id)
+			this.dbManager.close(paths.relativeDatabasePath)
+
+			if (await this.fileManager.exists(paths.relativeWorkspacePath)) {
+				await this.fileManager.delete(paths.relativeWorkspacePath)
+			}
+
 			this.repo.removeWorkspace(id)
 
-			logger.info(`Deleted workspace: ${id}`)
+			logger.info(`Deleted workspace: ${id} (${workspace.name})`)
 		} catch (error) {
 			logger.error(`Failed to delete workspace: ${id}`, error)
 			throw error
 		}
 	}
 
-	rename(id: string, newName: string): void {
-		if (!newName.trim()) {
-			throw new ValidationError(`Workspace name can not be empty`)
-		}
-
-		const workspaces = this.repo.listWorkspaces()
-
-		this.validateWorkspaceExists(id)
-
-		if (workspaces.some((w) => w.id !== id && w.name === newName)) {
-			throw new ConflictError(`Workspace "${newName}" already exists`)
-		}
-
-		this.repo.updateWorkspace(id, {
-			name: newName,
-			updatedAt: new Date().toISOString(),
-		})
-
-		logger.info(`Workspace renamed: ${id} -> ${newName}`)
-
-		// const all = store
-		// 	.get('workspaces')
-		// 	.map((w) =>
-		// 		w.id === id
-		// 			? { ...w, name: newName, updatedAt: new Date().toISOString() }
-		// 			: w,
-		// 	)
-		// store.set('workspaces', all)
-	}
-
 	getSettings(id: string): WorkspaceSettings {
-		this.validateWorkspaceExists(id)
+		const workspaces = this.repo.listWorkspaces()
+		validateWorkspaceExists(workspaces, id)
 		return this.repo.getSettings(id)
 	}
 
 	async updateSettings(
 		id: string,
-		patch: Partial<WorkspaceSettings>,
+		patch: DeepPartial<WorkspaceSettings>,
 	): Promise<void> {
-		this.validateWorkspaceExists(id)
+		const workspaces = this.repo.listWorkspaces()
+		validateWorkspaceExists(workspaces, id)
 		this.repo.updateSettings(id, patch)
-		logger.info(`Settings updated for workspace: ${id}`)
 	}
 
-	getColumns(id: string, table: string): any[] {
-		this.validateWorkspaceExists(id)
-		return this.dbManager.getColumns(`workspaces/${id}/database.db`, table)
+	// Утилитарные методы для работы с файлами workspace
+	async exportWorkspace(id: string): Promise<any> {
+		const workspace = this.getById(id)
+		const settings = this.getSettings(id)
+
+		// TODO: Можно добавить экспорт данных из базы данных
+		// const data = await this.dbManager.exportData(`workspaces/${id}/database.db`)
+
+		return {
+			workspace,
+			settings,
+			// data,
+			exportedAt: new Date().toISOString(),
+		}
 	}
 
-	private async updateTableSchema(
+	async getWorkspaceSize(id: string): Promise<number> {
+		this.getById(id)
+
+		const paths = getWorkspacePaths(id)
+		if (await this.fileManager.exists(paths.relativeWorkspacePath)) {
+			return await this.fileManager.getDirectorySize(
+				paths.relativeWorkspacePath,
+			)
+		}
+
+		return 0
+	}
+
+	async getDatabaseStats(
 		id: string,
-		schema: UIColumn[],
-	): Promise<void> {
-		this.repo.updateSettings(id, {
-			table: {
-				...this.repo.getSettings(id).table,
-				schema,
-			},
-		})
-	}
+	): Promise<{ totalBooks: number; databaseSize: number }> {
+		this.getById(id)
 
-	private validateWorkspaceExists(id: string): void {
-		const exists = this.repo.listWorkspaces().some((w) => w.id === id)
-		if (!exists) {
-			throw new NotFoundError('Workspace', id)
+		try {
+			const paths = getWorkspacePaths(id)
+			const stats = await this.dbManager.getStats(paths.relativeDatabasePath)
+
+			return {
+				totalBooks: stats.records,
+				databaseSize: stats.size,
+			}
+		} catch (error) {
+			logger.error(`Failed to get database stats for workspace: ${id}`, error)
+			return { totalBooks: 0, databaseSize: 0 }
 		}
 	}
 
-	private mapUITypeToSql(uiType: UIColumnType): ColumnType {
-		const mapping: Record<UIColumnType, ColumnType> = {
-			InputNumber: 'INTEGER',
-			Date: 'TEXT',
-			MultiSelect: 'TEXT',
-			Select: 'TEXT',
-			InputText: 'TEXT',
-			InputTextarea: 'TEXT',
-		}
-		return mapping[uiType]
+	async vacuumDatabase(id: string): Promise<void> {
+		this.getById(id)
+
+		const paths = getWorkspacePaths(id)
+		await this.dbManager.vacuum(paths.relativeDatabasePath)
+		logger.info(`Database vacuumed for workspace: ${id}`)
 	}
 
-	private convertUISchemaToDbSchema(uiSchema: UIColumn[]): ColumnSpec[] {
-		return uiSchema.map((col) => ({
-			key: col.key,
-			label: col.key,
-			type: this.mapUITypeToSql(col.type),
-			required: col.required,
-		}))
+	async getWorkspaceStats(id: string): Promise<any> {
+		this.getById(id)
+
+		const [dbStats, workspace] = await Promise.all([
+			this.getDatabaseStats(id),
+			Promise.resolve(this.getById(id)),
+		])
+
+		return {
+			totalBooks: dbStats.totalBooks,
+			databaseSize: dbStats.databaseSize,
+			lastModified: workspace.updatedAt || workspace.createdAt,
+		}
 	}
 }
