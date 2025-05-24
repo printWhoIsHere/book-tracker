@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import fs from 'fs'
 import path from 'path'
 import { app } from 'electron'
 import { is } from '@electron-toolkit/utils'
@@ -44,6 +45,21 @@ class ConfigService {
 		const rootDir = isDev
 			? path.resolve(__dirname, '../../data')
 			: path.join(app.getPath('userData'), 'data')
+
+		if (!fs.existsSync(rootDir)) {
+			fs.mkdirSync(rootDir, { recursive: true })
+		}
+
+		const workspacesDir = path.join(rootDir, 'workspaces')
+		const backupsDir = path.join(rootDir, 'backups')
+
+		if (!fs.existsSync(workspacesDir)) {
+			fs.mkdirSync(workspacesDir, { recursive: true })
+		}
+
+		if (!fs.existsSync(backupsDir)) {
+			fs.mkdirSync(backupsDir, { recursive: true })
+		}
 
 		this.config = ConfigSchema.parse({
 			isDev,

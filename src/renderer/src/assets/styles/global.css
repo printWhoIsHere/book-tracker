@@ -43,6 +43,30 @@
 
 @import '@renderer/assets/styles/themes/zinc.css';
 
+@layer base {
+	::-webkit-scrollbar {
+		@apply w-2 h-2;
+	}
+	::-webkit-scrollbar-track {
+		@apply bg-background;
+	}
+	::-webkit-scrollbar-thumb {
+		@apply bg-border rounded;
+	}
+	::-webkit-scrollbar-thumb:hover {
+		@apply bg-foreground/20;
+	}
+	::-webkit-scrollbar-corner {
+		@apply bg-background;
+	}
+
+	input[type='number']::-webkit-inner-spin-button,
+	input[type='number']::-webkit-outer-spin-button {
+		-webkit-appearance: none;
+		margin: 0;
+	}
+}
+
 @layer utilities {
 	.bg-wavy-lines {
 		position: relative;

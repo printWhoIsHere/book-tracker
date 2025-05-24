@@ -3,6 +3,7 @@ import { useTypedMutation } from '@renderer/lib/react-query'
 
 const WORKSPACES_KEY = ['workspaces']
 const ACTIVE_KEY = ['workspace', 'active']
+const SETTINGS_KEY = ['workspace', 'settings']
 
 export function useWorkspace() {
 	const {

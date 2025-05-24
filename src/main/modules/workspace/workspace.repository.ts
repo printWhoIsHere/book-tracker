@@ -13,7 +13,6 @@ import {
 	WorkspaceSettings,
 	WorkspaceSettingsSchema,
 	defaultSettings,
-	DeepPartial,
 } from './workspace.schema'
 
 const logger = createLogger('WorkspaceRepository')
@@ -32,7 +31,7 @@ export interface IWorkspaceRepository {
 
 	// Settings management
 	getSettings(id: string): WorkspaceSettings
-	updateSettings(id: string, patch: DeepPartial<WorkspaceSettings>): void
+	updateSettings(id: string, patch: Partial<WorkspaceSettings>): void
 
 	// Cache management
 	clearSettingsCache(): void
@@ -189,16 +188,28 @@ export class WorkspaceRepository implements IWorkspaceRepository {
 		}
 	}
 
-	updateSettings(id: string, patch: DeepPartial<WorkspaceSettings>): void {
+	updateSettings(id: string, patch: Partial<WorkspaceSettings>): void {
 		try {
 			const workspaces = this.listWorkspaces()
 			validateWorkspaceExists(workspaces, id)
 
 			const store = this.getSettingsStore(id)
 			const currentSettings = store.store
-			const updatedSettings = this.deepMerge(currentSettings, patch)
-			const validSettings = WorkspaceSettingsSchema.parse(updatedSettings)
 
+			const updatedSettings = {
+				...currentSettings,
+				...patch,
+				table: {
+					...currentSettings.table,
+					...(patch.table || {}),
+				},
+				export: {
+					...currentSettings.export,
+					...(patch.export || {}),
+				},
+			}
+
+			const validSettings = WorkspaceSettingsSchema.parse(updatedSettings)
 			store.store = validSettings
 			logger.info(`Settings updated for workspace: ${id}`)
 		} catch (error) {
@@ -233,37 +244,5 @@ export class WorkspaceRepository implements IWorkspaceRepository {
 		}
 
 		return this.settingsCache.get(id)!
-	}
-
-	private deepMerge(
-		target: WorkspaceSettings,
-		source: DeepPartial<WorkspaceSettings>,
-	): WorkspaceSettings {
-		const result = { ...target } as WorkspaceSettings
-
-		for (const key in source) {
-			const sourceValue = source[key as keyof WorkspaceSettings]
-			const targetValue = result[key as keyof WorkspaceSettings]
-
-			if (sourceValue === undefined) continue
-
-			if (
-				sourceValue &&
-				typeof sourceValue === 'object' &&
-				!Array.isArray(sourceValue) &&
-				targetValue &&
-				typeof targetValue === 'object' &&
-				!Array.isArray(targetValue)
-			) {
-				;(result as any)[key] = this.deepMerge(
-					targetValue as any,
-					sourceValue as any,
-				)
-			} else {
-				;(result as any)[key] = sourceValue
-			}
-		}
-
-		return result
 	}
 }

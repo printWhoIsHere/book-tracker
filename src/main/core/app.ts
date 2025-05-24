@@ -4,7 +4,6 @@ import { electronApp, optimizer } from '@electron-toolkit/utils'
 import { createWindow } from '@main/core/window'
 import { createLogger } from '@main/core/logger'
 import { DatabaseManager } from '@main/database/database.manager'
-import { FileManager } from '@main/utils/file.manager'
 
 const logger = createLogger('APP')
 
@@ -28,11 +27,6 @@ export class App {
 
 		// Настройка Electron
 		electronApp.setAppUserModelId('book-tracker.app')
-
-		// Создание директорий
-		const fileManager = new FileManager()
-		fileManager.ensureDir('backups')
-		fileManager.ensureDir('workspaces')
 
 		// Настройка обработчиков событий
 		this.setupEventHandlers()
@@ -69,8 +63,6 @@ export class App {
 	}
 
 	private shutdown(): void {
-		logger.info('Application shutting down...')
-
 		// Закрывает все DB
 		DatabaseManager.getInstance().closeAll()
 

@@ -8,7 +8,7 @@ import { WorkspaceRecord } from '@main/modules/workspace/workspace.schema'
  */
 export function getWorkspacePaths(workspaceId: string) {
 	const workspaceDir = path.join(config.rootDir, 'workspaces', workspaceId)
-	console.log('>>>>>>>>>> ', workspaceDir)
+
 	return {
 		workspace: workspaceDir,
 		database: path.join(workspaceDir, 'database.db'),

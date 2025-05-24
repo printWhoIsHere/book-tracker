@@ -12,11 +12,7 @@ import {
 	validateUniqueWorkspaceName,
 	validateWorkspaceLimit,
 } from '@main/utils/workspace'
-import {
-	WorkspaceRecord,
-	WorkspaceSettings,
-	DeepPartial,
-} from './workspace.schema'
+import { WorkspaceRecord, WorkspaceSettings } from './workspace.schema'
 import { WorkspaceRepository } from './workspace.repository'
 
 const logger = createLogger('WorkspaceService')
@@ -38,29 +34,46 @@ export class WorkspaceService {
 		validateWorkspaceLimit(workspaces)
 		validateUniqueWorkspaceName(workspaces, name)
 
-		const id = uuidv4(),
-			now = new Date().toISOString(),
-			record: WorkspaceRecord = { id, name, createdAt: now }
+		const id = uuidv4()
+		const now = new Date().toISOString()
+		const record: WorkspaceRecord = { id, name, createdAt: now }
 
 		try {
-			this.repo.addWorkspace(record)
-			this.repo.setActiveId(id)
-
-			logger.info(`Create workspace: ${id}`)
-
 			const paths = getWorkspacePaths(id)
 			await this.dbManager.create(paths.relativeDatabasePath, 'books')
+
+			this.repo.addWorkspace(record)
+			this.repo.setActiveId(id)
 
 			logger.info(`Workspace created successfully: ${id} (${name})`)
 			return id
 		} catch (error) {
 			// Rollback при ошибке
+			logger.error(`Failed to create workspace: ${id}`, error)
+
 			try {
-				this.repo.removeWorkspace(id)
-				await this.fileManager.delete(`workspaces/${id}`)
-			} catch (error) {
-				logger.error(`Failed to rollback workspace creation: ${id}`)
+				const existingWorkspaces = this.repo.listWorkspaces()
+				if (existingWorkspaces.some((w) => w.id === id)) {
+					this.repo.removeWorkspace(id)
+				}
+
+				const paths = getWorkspacePaths(id)
+				try {
+					this.dbManager.close(paths.relativeDatabasePath)
+				} catch (dbError) {
+					// Игнорируем ошибки закрытия несуществующей БД
+				}
+
+				if (await this.fileManager.exists(paths.relativeWorkspacePath)) {
+					await this.fileManager.delete(paths.relativeWorkspacePath)
+				}
+			} catch (rollbackError) {
+				logger.error(
+					`Failed to rollback workspace creation: ${id}`,
+					rollbackError,
+				)
 			}
+
 			throw error
 		}
 	}
@@ -141,7 +154,7 @@ export class WorkspaceService {
 
 	async updateSettings(
 		id: string,
-		patch: DeepPartial<WorkspaceSettings>,
+		patch: Partial<WorkspaceSettings>,
 	): Promise<void> {
 		const workspaces = this.repo.listWorkspaces()
 		validateWorkspaceExists(workspaces, id)

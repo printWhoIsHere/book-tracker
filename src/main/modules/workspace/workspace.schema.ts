@@ -1,9 +1,5 @@
 import { z } from 'zod'
 
-export type DeepPartial<T> = {
-	[P in keyof T]?: T[P] extends object ? DeepPartial<T[P]> : T[P]
-}
-
 export const WorkspaceRecordSchema = z.object({
 	id: z.string().uuid(),
 	name: z.string().min(1).max(100).trim(),
@@ -86,5 +82,5 @@ export const WorkspaceIdSchema = z.object({
 
 export const UpdateSettingsSchema = z.object({
 	id: z.string().uuid(),
-	settings: z.record(z.any()).optional(),
+	settings: WorkspaceSettingsSchema.optional(),
 })

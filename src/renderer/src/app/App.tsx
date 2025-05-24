@@ -27,23 +27,12 @@ function App(): JSX.Element {
 	}
 
 	return (
-		<div className='min-h-screen w-full flex bg-background text-foreground'>
+		<div className='w-full h-screen flex bg-background text-foreground overflow-hidden'>
 			<Sidebar />
-
-			<div className='flex flex-col flex-1 min-h-screen overflow-hidden'>
+			<div className='flex flex-col flex-1 overflow-hidden min-h-0'>
 				<Header />
-
-				<main className='flex flex-col gap-4 flex-1 w-full p-1 md:p-4 overflow-hidden'>
-					{/* Main content area */}
-					<div className='w-full flex-1 border rounded-lg overflow-auto bg-card'>
-						{/* Здесь будет ваш основной контент */}
-						{/* <DataTable /> */}
-					</div>
-
-					{/* Footer */}
-					<div className='w-full h-12 border rounded-lg bg-card flex items-center px-4'>
-						{/* Здесь будет footer контент */}
-					</div>
+				<main className='flex flex-col gap-4 flex-1 p-1 md:p-4 overflow-hidden min-h-0'>
+					<DataTable />
 				</main>
 			</div>
 		</div>

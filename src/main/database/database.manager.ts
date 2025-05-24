@@ -7,6 +7,7 @@ import { createLogger } from '@main/core/logger'
 import { DatabaseError } from '@main/core/errors'
 
 import type { BookRecord } from '@main/modules/book/book.schema'
+import { mock } from './mock'
 
 const logger = createLogger('DatabaseManager')
 
@@ -163,21 +164,23 @@ export class DatabaseManager {
 
 	private createTable(db: DatabaseType, tableName: string): void {
 		db.exec(`
-			CREATE TABLE IF NOT EXISTS ${tableName} (
-				id INTEGER PRIMARY KEY AUTOINCREMENT,
-				title TEXT,
-				totalVolumes INTEGER,
-				currentVolume INTEGER,
-				lastName TEXT,
-				firstName TEXT,
-				middleName TEXT,
-				genre TEXT,
-				content TEXT,
-				annotation TEXT,
-				year INTEGER,
-				tags TEXT
-			)	
-		`)
+        CREATE TABLE IF NOT EXISTS ${tableName} (
+					id INTEGER PRIMARY KEY AUTOINCREMENT,
+					title TEXT,
+					totalVolumes INTEGER,
+					currentVolume INTEGER,
+					lastName TEXT,
+					firstName TEXT,
+					middleName TEXT,
+					genre TEXT,
+					content TEXT,
+					annotation TEXT,
+					year INTEGER,
+					tags TEXT,
+					createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+					updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
+        )	
+    `)
 
 		// Создаем индексы для улучшения производительности
 		db.exec(`
@@ -185,16 +188,16 @@ export class DatabaseManager {
 			CREATE INDEX IF NOT EXISTS idx_books_author ON ${tableName}(lastName, firstName);
 			CREATE INDEX IF NOT EXISTS idx_books_genre ON ${tableName}(genre);
 			CREATE INDEX IF NOT EXISTS idx_books_year ON ${tableName}(year);
-		`)
+    `)
 
 		// Создаем триггер для автоматического обновления updatedAt
 		db.exec(`
 			CREATE TRIGGER IF NOT EXISTS update_${tableName}_timestamp 
 			AFTER UPDATE ON ${tableName}
 			BEGIN
-				UPDATE ${tableName} SET updatedAt = CURRENT_TIMESTAMP WHERE id = NEW.id;
+					UPDATE ${tableName} SET updatedAt = CURRENT_TIMESTAMP WHERE id = NEW.id;
 			END;
-		`)
+    `)
 
 		logger.info(`Table "${tableName}" created with indexes and triggers`)
 	}
@@ -212,16 +215,14 @@ export class DatabaseManager {
 				return
 			}
 
-			const mockFilePath = path.join(config.rootDir, 'mock.json')
-			const jsonData = fs.readFileSync(mockFilePath, 'utf-8')
-			const mockBooks: Omit<BookRecord, 'id'>[] = JSON.parse(jsonData)
+			const mockBooks: Omit<BookRecord, 'id'>[] = mock
 
 			const insert = db.prepare(`
-				INSERT INTO ${tableName} (
-					title, totalVolumes, currentVolume, lastName, firstName, middleName,
-					genre, content, annotation, year, tags
-				) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-			`)
+            INSERT INTO ${tableName} (
+                title, totalVolumes, currentVolume, lastName, firstName, middleName,
+                genre, content, annotation, year, tags
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `)
 
 			const insertMany = db.transaction((books: typeof mockBooks) => {
 				for (const book of books) {
@@ -236,7 +237,7 @@ export class DatabaseManager {
 						book.content,
 						book.annotation,
 						book.year,
-						book.tags,
+						JSON.stringify(book.tags),
 					)
 				}
 			})
@@ -245,7 +246,7 @@ export class DatabaseManager {
 			logger.info(`Inserted ${mockBooks.length} mock books into ${tableName}`)
 		} catch (error) {
 			logger.error('Failed to insert mock data', error)
-			throw new DatabaseError('Failed to insert mock data', error)
+			logger.warn('Continuing without mock data')
 		}
 	}
 }
