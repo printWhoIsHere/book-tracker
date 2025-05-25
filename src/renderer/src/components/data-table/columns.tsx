@@ -19,6 +19,25 @@ export const columns = [
 		size: 32,
 	}),
 
+	columnHelper.display({
+		id: 'search',
+		enableColumnFilter: true,
+		filterFn: (row, columnId, filterValue) => {
+			if (!filterValue) return true
+
+			const searchTerm = String(filterValue).toLowerCase()
+			const searchableColumns = ['title', 'content', 'annotation']
+
+			return searchableColumns.some((colId) => {
+				const cellValue = row.getValue(colId)
+				return String(cellValue || '')
+					.toLowerCase()
+					.includes(searchTerm)
+			})
+		},
+		size: 0,
+	}),
+
 	columnHelper.accessor('title', {
 		header: (info) => <Header.HeaderSortable info={info} label='Название' />,
 		cell: (info) => info.getValue(),

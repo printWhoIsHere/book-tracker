@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import type { Table } from '@tanstack/react-table'
-import { Cross } from 'lucide-react'
+import { RotateCcw } from 'lucide-react'
 
 import { cn } from '@renderer/lib/cn'
 
@@ -24,6 +24,7 @@ export function DataTableToolbar<TData>({
 	...props
 }: DataTableToolbarProps<TData>) {
 	const isFiltered = table.getState().columnFilters.length > 0
+	const isSorted = table.getState().sorting.length > 0
 
 	const { searchableColumns, filterableColumns } = useMemo(() => {
 		return {
@@ -31,6 +32,13 @@ export function DataTableToolbar<TData>({
 			filterableColumns: filterFields.filter((field) => field.options),
 		}
 	}, [filterFields])
+
+	const shouldShowReset = isFiltered || isSorted
+
+	const handleReset = () => {
+		table.resetColumnFilters()
+		table.resetSorting()
+	}
 
 	return (
 		<div
@@ -69,18 +77,19 @@ export function DataTableToolbar<TData>({
 								/>
 							),
 					)}
-				{isFiltered && (
+				{shouldShowReset && (
 					<Button
-						aria-label='Reset filters'
+						aria-label='Reset filters and sorting'
 						variant='ghost'
 						className='h-8 px-2 lg:px-3'
-						onClick={() => table.resetColumnFilters()}
+						onClick={handleReset}
 					>
+						<RotateCcw className='ml-2 size-4' aria-hidden='true' />
 						Reset
-						<Cross className='ml-2 size-4' aria-hidden='true' />
 					</Button>
 				)}
 			</div>
+			{children}
 		</div>
 	)
 }

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Column } from '@tanstack/react-table'
+import { Column, Table } from '@tanstack/react-table'
 import { Search, X } from 'lucide-react'
 
 import { Input } from '@renderer/components/ui/input'
@@ -17,9 +17,11 @@ export function ColumnSearch<TData, TValue>({
 	const [value, setValue] = useState((column?.getFilterValue() as string) ?? '')
 
 	const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-		const value = e.target.value
-		setValue(value)
-		column?.setFilterValue(value || undefined)
+		const newValue = e.target.value
+		setValue(newValue)
+
+		// Устанавливаем фильтр с кастомной функцией для мульти-поиска
+		column?.setFilterValue(newValue || undefined)
 	}
 
 	const handleClear = () => {
@@ -34,7 +36,7 @@ export function ColumnSearch<TData, TValue>({
 				placeholder={placeholder}
 				value={value}
 				onChange={handleChange}
-				className='group px-8 h-8'
+				className='group h-8 pl-8 pr-10'
 			/>
 			{!value && (
 				<kbd
