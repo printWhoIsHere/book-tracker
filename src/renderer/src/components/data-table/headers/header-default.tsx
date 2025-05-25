@@ -23,7 +23,10 @@ export function HeaderDefault<TData>({ header }: HeaderDefaultProps<TData>) {
 				{flexRender(header.column.columnDef.header, header.getContext())}
 			</span>
 
-			{!header.column.getIsLastColumn?.() && <HeaderResizer header={header} />}
+			{!header.column.getIsLastColumn?.() &&
+				!header.column.getIsFirstColumn?.() && (
+					<HeaderResizer header={header} />
+				)}
 		</TableHead>
 	)
 }

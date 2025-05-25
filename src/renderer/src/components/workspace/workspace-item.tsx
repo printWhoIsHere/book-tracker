@@ -24,7 +24,7 @@ export function WorkspaceDropdownItem({
 			key={workspace.id}
 			onClick={onClick}
 			className={cn(
-				'flex items-center gap-2 cursor-pointer',
+				'flex items-center gap-2 cursor-pointer my-0.5',
 				isActive && 'bg-sidebar-accent text-sidebar-accent-foreground',
 			)}
 		>

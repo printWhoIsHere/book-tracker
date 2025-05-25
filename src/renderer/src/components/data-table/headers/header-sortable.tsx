@@ -9,11 +9,13 @@ import { ColumnContextMenu } from '@renderer/components/data-table/headers'
 interface HeaderSortableProps<T> {
 	info: HeaderContext<BookRecord, T>
 	label: string
+	className?: string
 }
 
 export function HeaderSortable<TValue>({
 	info,
 	label,
+	className,
 }: HeaderSortableProps<TValue>) {
 	const { column } = info
 	const sorted = column.getIsSorted()
@@ -30,7 +32,10 @@ export function HeaderSortable<TValue>({
 					type='button'
 					title={`Sort by ${label}`}
 					onPointerDown={handleSort}
-					className='group w-full h-full flex flex-row rounded-md items-center justify-start gap-1 cursor-default hover:text-accent-foreground'
+					className={cn(
+						'group w-full h-full flex flex-row rounded-md items-center justify-start gap-1 cursor-default hover:text-accent-foreground',
+						className,
+					)}
 				>
 					{label}
 				</button>

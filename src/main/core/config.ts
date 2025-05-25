@@ -12,7 +12,7 @@ const ConfigSchema = z.object({
 	window: z.object({
 		width: z.number().default(1280),
 		height: z.number().default(720),
-		minWidth: z.number().default(760),
+		minWidth: z.number().default(1100),
 		minHeight: z.number().default(420),
 	}),
 	database: z.object({

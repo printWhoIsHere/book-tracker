@@ -47,12 +47,13 @@ export function getTagContainerMaxHeight(rowHeight: RowHeight): number {
  * Format full name from individual name parts
  */
 export function formatFullName(
-	lastName?: string,
-	firstName?: string,
-	middleName?: string,
+	lastName?: string | null,
+	firstName?: string | null,
+	middleName?: string | null,
 ): string {
-	const parts = [lastName, firstName, middleName].filter(Boolean)
-	return parts.length > 0 ? parts.join(' ') : '—'
+	const nameParts = [firstName, middleName].filter(Boolean).join(' ')
+	const fullNameParts = [lastName, nameParts].filter(Boolean)
+	return fullNameParts.join(', ') || ''
 }
 
 /**
