@@ -34,9 +34,10 @@ export class GlobalStoreManager {
 
 	private constructor() {
 		this.store = new Store<GlobalSchema>({
-			defaults,
 			name: 'global',
 			cwd: config.rootDir,
+			defaults,
+			// TODO: schema
 		})
 	}
 
@@ -154,23 +155,7 @@ export class GlobalStoreManager {
 		this.set('backups', { ...current, ...updates })
 	}
 
-	// Utility methods
-	exportData(): GlobalSchema {
-		return this.getAll()
-	}
-
-	importData(data: GlobalSchema): void {
-		try {
-			GlobalSchema.parse(data)
-			this.store.store = data
-			logger.info('Store data imported successfully')
-		} catch (error) {
-			logger.error('Failed to import store data', error)
-			throw new Error('Invalid store data format')
-		}
-	}
-
-	getStorePath(): string {
+	getPath(): string {
 		return this.store.path
 	}
 }

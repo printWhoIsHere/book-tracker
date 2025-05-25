@@ -1,6 +1,8 @@
 import { Cell, flexRender } from '@tanstack/react-table'
+
+import { cn } from '@renderer/lib/cn'
+
 import { TableCell } from '@renderer/components/ui/table'
-import { cn } from '@renderer/lib/utils'
 
 interface CellDefaultProps<TData> {
 	cell: Cell<TData, unknown>

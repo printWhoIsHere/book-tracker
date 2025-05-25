@@ -1,5 +1,9 @@
 import { Table as ReactTable } from '@tanstack/react-table'
-import { Table, TableHead, TableRow } from '@renderer/components/ui/table'
+import {
+	Table,
+	TableHeader as TableHead,
+	TableRow,
+} from '@renderer/components/ui/table'
 import { HeaderDefault } from '@renderer/components/data-table/headers'
 
 interface TableHeaderProps<TData> {

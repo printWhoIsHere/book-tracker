@@ -1,8 +1,8 @@
-import { z } from 'zod'
 import fs from 'fs'
 import path from 'path'
 import { app } from 'electron'
 import { is } from '@electron-toolkit/utils'
+import { z } from 'zod'
 
 export const isDev = is.dev || process.env.NODE_ENV === 'development'
 
@@ -42,24 +42,16 @@ class ConfigService {
 
 	private constructor() {
 		const isDev = is.dev || process.env.NODE_ENV === 'development'
+
 		const rootDir = isDev
 			? path.resolve(__dirname, '../../data')
 			: path.join(app.getPath('userData'), 'data')
 
-		if (!fs.existsSync(rootDir)) {
-			fs.mkdirSync(rootDir, { recursive: true })
-		}
+		this.ensureDirectory(rootDir)
 
-		const workspacesDir = path.join(rootDir, 'workspaces')
-		const backupsDir = path.join(rootDir, 'backups')
-
-		if (!fs.existsSync(workspacesDir)) {
-			fs.mkdirSync(workspacesDir, { recursive: true })
-		}
-
-		if (!fs.existsSync(backupsDir)) {
-			fs.mkdirSync(backupsDir, { recursive: true })
-		}
+		this.ensureDirectory(path.join(rootDir, 'workspaces'))
+		this.ensureDirectory(path.join(rootDir, 'backups'))
+		this.ensureDirectory(path.join(rootDir, 'logs'))
 
 		this.config = ConfigSchema.parse({
 			isDev,
@@ -87,6 +79,12 @@ class ConfigService {
 				},
 			},
 		})
+	}
+
+	private ensureDirectory(dirPath: string): void {
+		if (!fs.existsSync(dirPath)) {
+			fs.mkdirSync(dirPath, { recursive: true })
+		}
 	}
 
 	static getInstance(): ConfigService {

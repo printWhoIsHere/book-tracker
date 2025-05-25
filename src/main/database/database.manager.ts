@@ -12,8 +12,8 @@ import { mock } from './mock'
 const logger = createLogger('DatabaseManager')
 
 export class DatabaseManager {
-	private cache = new Map<string, DatabaseType>()
 	private static instance: DatabaseManager
+	private cache = new Map<string, DatabaseType>()
 
 	private constructor() {}
 

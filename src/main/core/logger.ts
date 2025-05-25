@@ -1,8 +1,8 @@
 import path from 'path'
-import { app } from 'electron'
 import log from 'electron-log'
 
 import { config } from '@main/core/config'
+import { getLogsDir } from '@main/utils/path'
 
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error'
 
@@ -31,7 +31,7 @@ class LoggerService {
 
 		// Установка пути для лог-файла
 		log.transports.file.resolvePathFn = () =>
-			path.join(app.getPath('userData'), 'logs', 'main.log')
+			path.join(getLogsDir(), 'main.log')
 
 		// Настройка уровней логирования
 		log.transports.console.level = config.logging.console.level as any

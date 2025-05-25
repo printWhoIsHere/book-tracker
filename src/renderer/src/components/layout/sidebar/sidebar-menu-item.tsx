@@ -1,6 +1,5 @@
-import React from 'react'
-import { cn } from '@renderer/lib/utils'
-import { SidebarButton } from './SidebarButton'
+import { cn } from '@renderer/lib/cn'
+import { SidebarButton } from './sidebar-button'
 import { useSidebar } from '@renderer/providers/sidebar-provider'
 
 interface SidebarMenuItemProps {
@@ -35,7 +34,7 @@ export function SidebarMenuItem({ item, onItemClick }: SidebarMenuItemProps) {
 					isDisabled && 'opacity-50 cursor-not-allowed',
 				)}
 			>
-				<item.icon className='h-4 w-4 shrink-0' />
+				<item.icon className='h-2 w-2 shrink-0' />
 				{!isCollapsed && <span className='ml-2 truncate'>{item.title}</span>}
 			</SidebarButton>
 		</li>

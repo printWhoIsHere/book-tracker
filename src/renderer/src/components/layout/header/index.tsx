@@ -1,4 +1,4 @@
-import { SidebarTrigger } from '@renderer/components/sidebar/SidebarTrigger'
+import { SidebarTrigger } from '@renderer/components/layout/sidebar/sidebar-trigger'
 import { Separator } from '@renderer/components/ui/separator'
 
 export function Header() {

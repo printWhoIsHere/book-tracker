@@ -1,7 +1,20 @@
-import { createContext, useContext, useState } from 'react'
+import { createContext, useContext, useEffect, useState } from 'react'
+
+type Theme = 'dark' | 'light' | 'system'
+
+type ThemeProviderProps = {
+	children: React.ReactNode
+	defaultTheme?: Theme
+	storageKey?: string
+}
+
+type ThemeProviderState = {
+	theme: Theme
+	setTheme: (theme: Theme) => void
+}
 
 const initialState: ThemeProviderState = {
-	theme: { mode: 'dark', color: 'zinc' },
+	theme: 'system',
 	setTheme: () => null,
 }
 
@@ -9,46 +22,47 @@ const ThemeProviderContext = createContext<ThemeProviderState>(initialState)
 
 export function ThemeProvider({
 	children,
-	defaultTheme = initialState.theme,
-	storageKey = 'distort-ui-theme',
+	defaultTheme = 'system',
+	storageKey = 'vite-ui-theme',
 	...props
 }: ThemeProviderProps) {
-	const [storedTheme, setStoredTheme] = useState<Theme>(defaultTheme)
+	const [theme, setTheme] = useState<Theme>(
+		() => (localStorage.getItem(storageKey) as Theme) || defaultTheme,
+	)
+
+	useEffect(() => {
+		const root = window.document.documentElement
+
+		root.classList.remove('light', 'dark')
+
+		if (theme === 'system') {
+			const systemTheme = window.matchMedia('(prefers-color-scheme: dark)')
+				.matches
+				? 'dark'
+				: 'light'
+
+			root.classList.add(systemTheme)
+			return
+		}
+
+		root.classList.add(theme)
+	}, [theme])
 
 	const value = {
-		theme: storedTheme,
+		theme,
 		setTheme: (theme: Theme) => {
-			setStoredTheme(theme)
+			localStorage.setItem(storageKey, theme)
+			setTheme(theme)
 		},
-	}
-
-	if (storedTheme.mode === 'system') {
-		const systemMode = window.matchMedia('(prefers-color-scheme: dark)').matches
-			? 'dark'
-			: 'light'
-
-		return (
-			<ThemeProviderContext.Provider {...props} value={value}>
-				<div data-theme={`${storedTheme.color}-${systemMode}`}>{children}</div>
-			</ThemeProviderContext.Provider>
-		)
 	}
 
 	return (
 		<ThemeProviderContext.Provider {...props} value={value}>
-			<div
-				className={`${storedTheme.mode}`}
-				data-theme={`${storedTheme.color}-${storedTheme.mode}`}
-			>
-				{children}
-			</div>
+			{children}
 		</ThemeProviderContext.Provider>
 	)
 }
 
-/**
- * Hook to get and set new theme throughout application
- */
 export const useTheme = () => {
 	const context = useContext(ThemeProviderContext)
 

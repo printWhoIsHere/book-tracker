@@ -8,6 +8,7 @@ import { config } from '@main/core/config'
 
 export function createWindow(): void {
 	const mainWindow = new BrowserWindow({
+		title: 'Book Tracker',
 		width: config.window.width,
 		height: config.window.height,
 		minWidth: config.window.minWidth,

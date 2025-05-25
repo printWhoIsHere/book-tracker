@@ -9,7 +9,7 @@ import {
 import { TooltipProvider } from '@renderer/components/ui/tooltip'
 
 import { useMobile } from '@renderer/hooks/useMobile'
-import { cn } from '@renderer/lib/utils'
+import { cn } from '@renderer/lib/cn'
 
 interface SidebarContextProps {
 	state: 'expanded' | 'collapsed'

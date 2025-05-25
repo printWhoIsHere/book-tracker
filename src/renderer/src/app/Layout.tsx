@@ -17,7 +17,7 @@ const queryClient = new QueryClient({
 function RootLayout({ children }: { children: React.ReactNode }): JSX.Element {
 	return (
 		<QueryClientProvider client={queryClient}>
-			<ThemeProvider>
+			<ThemeProvider defaultTheme='dark' storageKey='ui-theme'>
 				<TableProvider>
 					<SidebarProvider>
 						<ModalProvider />

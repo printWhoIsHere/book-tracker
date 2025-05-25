@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import { ChevronDown, ChevronRight } from 'lucide-react'
-import { cn } from '@renderer/lib/utils'
+
+import { cn } from '@renderer/lib/cn'
 import { useSidebar } from '@renderer/providers/sidebar-provider'
-import { SidebarMenuItem } from './SidebarMenuItem'
+
+import { SidebarMenuItem } from './sidebar-menu-item'
 
 interface SidebarGroupProps {
 	group: SidebarGroup

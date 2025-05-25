@@ -1,7 +1,7 @@
 import { useSidebar } from '@renderer/providers/sidebar-provider'
 import { useSidebarActions } from '@renderer/hooks/useSidebarActions'
 import { sidebarConfig } from './config'
-import { SidebarGroup } from './SidebarGroup'
+import { SidebarGroup } from './sidebar-group'
 import { useModal } from '@renderer/hooks/useModal'
 
 export function SidebarContent() {

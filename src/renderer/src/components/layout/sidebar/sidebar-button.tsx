@@ -9,7 +9,7 @@ import {
 	TooltipTrigger,
 } from '@renderer/components/ui/tooltip'
 
-import { cn } from '@renderer/lib/utils'
+import { cn } from '@renderer/lib/cn'
 import { useSidebar } from '@renderer/providers/sidebar-provider'
 
 export interface SidebarButtonProps

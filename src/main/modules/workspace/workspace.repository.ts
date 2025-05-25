@@ -1,253 +1,194 @@
-import Store from 'electron-store'
-import { createLogger } from '@main/core/logger'
-import { DatabaseError, NotFoundError } from '@main/core/errors'
+import path from 'path'
 import { globalStoreManager } from '@main/core/store'
-import {
-	getWorkspacePaths,
-	validateWorkspaceExists,
-	validateUniqueWorkspaceName,
-	validateWorkspaceLimit,
-} from '@main/utils/workspace'
-import {
+import { FileManager } from '@main/utils/file.manager'
+import { config } from '@main/core/config'
+import { createLogger } from '@main/core/logger'
+import { ValidationError, NotFoundError } from '@main/core/errors'
+
+import type {
 	WorkspaceRecord,
 	WorkspaceSettings,
-	WorkspaceSettingsSchema,
-	defaultSettings,
+	WorkspacePaths,
 } from './workspace.schema'
+import { WorkspaceSettingsSchema, defaultSettings } from './workspace.schema'
 
 const logger = createLogger('WorkspaceRepository')
 
-export interface IWorkspaceRepository {
-	// Workspace CRUD
-	listWorkspaces(): WorkspaceRecord[]
-	findWorkspaceById(id: string): WorkspaceRecord | null
-	addWorkspace(record: WorkspaceRecord): void
-	updateWorkspace(id: string, updates: Partial<WorkspaceRecord>): void
-	removeWorkspace(id: string): void
+export class WorkspaceRepository {
+	private static instance: WorkspaceRepository
+	private settingsCache = new Map<string, WorkspaceSettings>()
+	private fileManager: FileManager
 
-	// Active workspace management
-	getActiveId(): string | null
-	setActiveId(id: string | null): void
-
-	// Settings management
-	getSettings(id: string): WorkspaceSettings
-	updateSettings(id: string, patch: Partial<WorkspaceSettings>): void
-
-	// Cache management
-	clearSettingsCache(): void
-	clearSettingsCacheForWorkspace(id: string): void
-}
-
-export class WorkspaceRepository implements IWorkspaceRepository {
-	private readonly settingsCache = new Map<string, Store<WorkspaceSettings>>()
-
-	constructor() {}
-
-	listWorkspaces(): WorkspaceRecord[] {
-		try {
-			// TODO: Если globalStoreManager хранит устаревший JSON (мануальное редактирование файла),
-			//       надо валидировать схему и, при ошибке, пересоздавать defaults.
-
-			return globalStoreManager.getWorkspaces()
-		} catch (error) {
-			logger.error(`Failed to list workspaces`, error)
-			throw new DatabaseError(`Failed to retrieve workspace list`, error)
-		}
+	private constructor() {
+		this.fileManager = new FileManager('workspaces', config.rootDir)
 	}
 
-	findWorkspaceById(id: string): WorkspaceRecord | null {
-		try {
-			const workspaces = this.listWorkspaces()
-			return workspaces.find((w) => w.id === id) || null
-		} catch (error) {
-			logger.error(`Failed to find workspace: ${id}`, error)
-			return null
+	static getInstance(): WorkspaceRepository {
+		if (!WorkspaceRepository.instance) {
+			WorkspaceRepository.instance = new WorkspaceRepository()
 		}
+		return WorkspaceRepository.instance
 	}
 
-	addWorkspace(record: WorkspaceRecord): void {
-		try {
-			const workspaces = this.listWorkspaces()
-			// TODO: Помимо проверки имени, стоит проверять на существование конфликта ID.
-			validateWorkspaceLimit(workspaces)
-			validateUniqueWorkspaceName(workspaces, record.name)
-
-			// Проверка на дубликаты по имени
-			if (workspaces.some((w) => w.name === record.name)) {
-				throw new Error(`Workspace with name "${record.name}" already exists`)
-			}
-
-			globalStoreManager.addWorkspace(record)
-			logger.info(`Workspace added: ${record.id} (${record.name})`)
-		} catch (error) {
-			logger.error('Failed to add workspace', error)
-			throw new DatabaseError('Failed to add workspace', error)
-		}
+	// Store operations
+	getAll(): WorkspaceRecord[] {
+		return globalStoreManager.getWorkspaces()
 	}
 
-	updateWorkspace(id: string, updates: Partial<WorkspaceRecord>): void {
-		try {
-			const workspaces = this.listWorkspaces()
-			validateWorkspaceExists(workspaces, id)
-
-			if (updates.name) {
-				validateUniqueWorkspaceName(workspaces, updates.name, id)
-			}
-
-			const success = globalStoreManager.updateWorkspace(id, updates)
-			if (!success) {
-				throw new NotFoundError('Workspace', id)
-			}
-
-			logger.info(`Workspace updated: ${id}`)
-		} catch (error) {
-			if (error instanceof NotFoundError) throw error
-
-			logger.error(`Failed to update workspace: ${id}`, error)
-			throw new DatabaseError('Failed to update workspace', error)
-		}
+	getById(id: string): WorkspaceRecord | null {
+		const workspaces = this.getAll()
+		return workspaces.find((w) => w.id === id) || null
 	}
 
-	removeWorkspace(id: string): void {
-		try {
-			const workspaces = this.listWorkspaces()
-			validateWorkspaceExists(workspaces, id)
-			// TODO: Перед удалением из store проверить, что файл настроек settings.json
-			//       и БД действительно удалены, иначе может утечь папка с данными.
+	save(workspace: WorkspaceRecord): void {
+		const workspaces = this.getAll()
+		const index = workspaces.findIndex((w) => w.id === workspace.id)
 
-			const success = globalStoreManager.removeWorkspace(id)
-			if (!success) {
-				throw new NotFoundError('Workspace', id)
-			}
-
-			const currentActive = this.getActiveId()
-			if (currentActive === id) {
-				const remainingWorkspaces = this.listWorkspaces()
-				if (remainingWorkspaces.length > 0) {
-					this.setActiveId(remainingWorkspaces[0].id)
-					logger.info(`Set new active workspace: ${remainingWorkspaces[0].id}`)
-				} else {
-					this.setActiveId(null)
-					logger.info('No workspaces remaining, cleared active workspace')
-				}
-			}
-
-			this.clearSettingsCacheForWorkspace(id)
-
-			const workspace = workspaces.find((w) => w.id === id)!
-			logger.info(`Workspace removed: ${id} (${workspace.name})`)
-		} catch (error) {
-			if (error instanceof NotFoundError) throw error
-
-			logger.error(`Failed to remove workspace: ${id}`, error)
-			throw new DatabaseError('Failed to remove workspace', error)
+		if (index !== -1) {
+			workspaces[index] = workspace
+		} else {
+			workspaces.push(workspace)
 		}
+
+		globalStoreManager.set('workspaces', workspaces)
+		logger.debug(`Workspace saved: ${workspace.id}`)
+	}
+
+	remove(id: string): boolean {
+		const success = globalStoreManager.removeWorkspace(id)
+		if (success) {
+			this.settingsCache.delete(id)
+			logger.debug(`Workspace removed from store: ${id}`)
+		}
+		return success
 	}
 
 	getActiveId(): string | null {
-		try {
-			return globalStoreManager.getActiveWorkspaceId()
-		} catch (error) {
-			logger.error('Failed to get active workspace id', error)
-			return null
-		}
+		return globalStoreManager.getActiveWorkspaceId()
 	}
 
 	setActiveId(id: string | null): void {
+		globalStoreManager.setActiveWorkspaceId(id)
+		logger.debug(`Active workspace set: ${id}`)
+	}
+
+	// Settings operations
+	async getSettings(id: string): Promise<WorkspaceSettings> {
+		// Check cache first
+		if (this.settingsCache.has(id)) {
+			return this.settingsCache.get(id)!
+		}
+
+		const settingsPath = `${id}/settings.json`
+
 		try {
-			if (id !== null) {
-				const workspaces = this.listWorkspaces()
-				validateWorkspaceExists(workspaces, id)
+			if (await this.fileManager.exists(settingsPath)) {
+				const content = await this.fileManager.readFile(settingsPath)
+				const parsed = JSON.parse(content)
+				const settings = WorkspaceSettingsSchema.parse(parsed)
+
+				// Cache the settings
+				this.settingsCache.set(id, settings)
+				logger.debug(`Settings loaded for workspace: ${id}`)
+				return settings
 			}
-
-			globalStoreManager.setActiveWorkspaceId(id)
 		} catch (error) {
-			if (error instanceof NotFoundError) throw error
-
-			logger.error(`Failed to set active workspace: ${id}`, error)
-			throw new DatabaseError('Failed to set active workspace', error)
+			logger.warn(`Failed to load settings for workspace ${id}`, error)
 		}
+
+		// Return default settings if file doesn't exist or is invalid
+		const settings = { ...defaultSettings }
+		this.settingsCache.set(id, settings)
+		return settings
 	}
 
-	getSettings(id: string): WorkspaceSettings {
+	async saveSettings(id: string, settings: WorkspaceSettings): Promise<void> {
 		try {
-			const workspaces = this.listWorkspaces()
-			validateWorkspaceExists(workspaces, id)
+			// Validate settings
+			const validated = WorkspaceSettingsSchema.parse(settings)
 
-			const store = this.getSettingsStore(id)
-			const settings = store.store
+			const settingsPath = `${id}/settings.json`
+			const content = JSON.stringify(validated, null, 2)
 
-			const validatedSettings = WorkspaceSettingsSchema.parse(settings)
+			await this.fileManager.writeFile(settingsPath, content)
 
-			if (JSON.stringify(settings) !== JSON.stringify(validatedSettings)) {
-				store.store = validatedSettings
-				logger.info(`Settings auto-corrected for workspace: ${id}`)
-			}
-
-			return validatedSettings
+			// Update cache
+			this.settingsCache.set(id, validated)
+			logger.debug(`Settings saved for workspace: ${id}`)
 		} catch (error) {
-			if (error instanceof NotFoundError) throw error
-
-			logger.error(`Failed to get settings for workspace: ${id}`, error)
-			throw new DatabaseError('Failed to retrieve workspace settings', error)
+			logger.error(`Failed to save settings for workspace ${id}`, error)
+			throw new ValidationError('Invalid settings format')
 		}
 	}
 
-	updateSettings(id: string, patch: Partial<WorkspaceSettings>): void {
-		try {
-			const workspaces = this.listWorkspaces()
-			validateWorkspaceExists(workspaces, id)
+	// File system operations
+	async createWorkspaceDir(id: string): Promise<void> {
+		await this.fileManager.ensureDir(id)
+		logger.info(`Workspace directory created: ${id}`)
+	}
 
-			const store = this.getSettingsStore(id)
-			const currentSettings = store.store
-
-			const updatedSettings = {
-				...currentSettings,
-				...patch,
-				table: {
-					...currentSettings.table,
-					...(patch.table || {}),
-				},
-				export: {
-					...currentSettings.export,
-					...(patch.export || {}),
-				},
-			}
-
-			const validSettings = WorkspaceSettingsSchema.parse(updatedSettings)
-			store.store = validSettings
-			logger.info(`Settings updated for workspace: ${id}`)
-		} catch (error) {
-			if (error instanceof NotFoundError) throw error
-			logger.error(`Failed to update settings for workspace: ${id}`, error)
-			throw new DatabaseError('Failed to update workspace settings', error)
+	async removeWorkspaceDir(id: string): Promise<void> {
+		if (await this.fileManager.exists(id)) {
+			await this.fileManager.delete(id)
+			logger.info(`Workspace directory removed: ${id}`)
 		}
 	}
 
-	clearSettingsCache(): void {
-		this.settingsCache.clear()
-		logger.debug('Settings cache cleared for all workspaces')
+	async workspaceDirExists(id: string): Promise<boolean> {
+		return await this.fileManager.exists(id)
 	}
 
-	clearSettingsCacheForWorkspace(id: string): void {
-		this.settingsCache.delete(id)
-		logger.debug(`Settings cache cleared for workspace: ${id}`)
+	getPaths(id: string): WorkspacePaths {
+		const workspaceDir = path.join(config.rootDir, 'workspaces', id)
+		return {
+			workspace: workspaceDir,
+			database: path.join(workspaceDir, 'database.db'),
+			settings: path.join(workspaceDir, 'settings.json'),
+
+			relWorkspacePath: path.join('workspaces', id),
+			relDatabasePath: path.join('workspaces', id, 'database.db'),
+		}
 	}
 
-	private getSettingsStore(id: string): Store<WorkspaceSettings> {
-		if (!this.settingsCache.has(id)) {
-			const paths = getWorkspacePaths(id)
+	// Cache management
+	clearSettingsCache(id?: string): void {
+		if (id) {
+			this.settingsCache.delete(id)
+			logger.debug(`Settings cache cleared for workspace: ${id}`)
+		} else {
+			this.settingsCache.clear()
+			logger.debug('All settings cache cleared')
+		}
+	}
 
-			const store = new Store<WorkspaceSettings>({
-				name: 'settings',
-				cwd: paths.workspace,
-				defaults: defaultSettings,
-				schema: WorkspaceSettingsSchema as any,
-			})
-
-			this.settingsCache.set(id, store)
+	// Validation helpers
+	async validateWorkspaceExists(id: string): Promise<void> {
+		const workspace = this.getById(id)
+		if (!workspace) {
+			throw new NotFoundError('Workspace', id)
 		}
 
-		return this.settingsCache.get(id)!
+		const dirExists = await this.workspaceDirExists(id)
+		if (!dirExists) {
+			throw new NotFoundError(`Workspace directory for ${id}`)
+		}
+	}
+
+	// Utility methods
+	async getWorkspaceStats(id: string): Promise<{
+		size: number
+		filesCount: number
+		hasDatabase: boolean
+		hasSettings: boolean
+	}> {
+		const size = await this.fileManager.getDirectorySize(id)
+		const files = await this.fileManager.list(id)
+
+		return {
+			size,
+			filesCount: files.length,
+			hasDatabase: files.includes('database.db'),
+			hasSettings: files.includes('settings.json'),
+		}
 	}
 }

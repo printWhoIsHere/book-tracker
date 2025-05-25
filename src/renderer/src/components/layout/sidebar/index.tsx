@@ -1,14 +1,13 @@
 import { Sheet, SheetContent } from '@renderer/components/ui/sheet'
 
 import { useSidebar } from '@renderer/providers/sidebar-provider'
-import { cn } from '@renderer/lib/utils'
 
-import { SidebarHeader } from './SidebarHeader'
-import { SidebarContent } from './SidebarContent'
-import { SidebarFooter } from './SidebarFooter'
+import { SidebarHeader } from './sidebar-header'
+import { SidebarContent } from './sidebar-content'
+import { SidebarFooter } from './sidebar-footer'
 
-const SIDEBAR_WIDTH_EXPANDED = 280 // 280px
-const SIDEBAR_WIDTH_COLLAPSED = 64 // 64px
+const SIDEBAR_WIDTH_EXPANDED = 280
+const SIDEBAR_WIDTH_COLLAPSED = 64
 
 export function Sidebar() {
 	const { isMobile, state, openMobile, setOpenMobile } = useSidebar()

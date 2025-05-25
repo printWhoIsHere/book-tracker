@@ -1,260 +1,204 @@
 import { createLogger } from '@main/core/logger'
-import { NotFoundError, DatabaseError } from '@main/core/errors'
+import { NotFoundError, ValidationError } from '@main/core/errors'
 import { DatabaseManager } from '@main/database/database.manager'
-import type { BookRecord } from '@main/modules/book/book.schema'
-import { getWorkspacePaths } from '@main/utils/workspace'
+import { WorkspaceService } from '@main/modules/workspace/workspace.service'
+
+import type {
+	BookRecord,
+	BookId,
+	BookIds,
+	BookAdd,
+	BookUpdate,
+} from './book.schema'
+import { BookAddSchema, BookUpdateSchema, BookIdsSchema } from './book.schema'
 
 const logger = createLogger('BookService')
 
 export class BookService {
-	private readonly dbManager: DatabaseManager
+	private dbManager: DatabaseManager
+	private workspaceService: WorkspaceService
 
 	constructor() {
 		this.dbManager = DatabaseManager.getInstance()
+		this.workspaceService = new WorkspaceService()
 	}
 
-	async create(
-		workspaceId: string,
-		book: Partial<Omit<BookRecord, 'id' | 'createdAt' | 'updatedAt'>>,
-	): Promise<BookRecord> {
-		const dbPath = getWorkspacePaths(workspaceId).database
+	async get(id: BookId): Promise<BookRecord> {
+		logger.debug(`Getting book by id: ${id}`)
 
-		try {
-			const db = this.dbManager.get(dbPath)
-			const insert = db.prepare(`
-				INSERT INTO books (
-					title, totalVolumes, currentVolume, 
-					lastName, firstName, middleName,
-					genre, content, annotation, year, tags
-				) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		const db = await this.getActiveDatabase()
+		const stmt = db.prepare('SELECT * FROM books WHERE id = ?')
+		const result = stmt.get(id)
+
+		if (!result) {
+			throw new NotFoundError('Book', id.toString())
+		}
+
+		logger.debug(`Book found: ${id}`)
+		return this.parseTags(result)
+	}
+
+	async getAll(): Promise<BookRecord[]> {
+		logger.debug('Getting all books')
+
+		const db = await this.getActiveDatabase()
+		const stmt = db.prepare('SELECT * FROM books ORDER BY createdAt DESC')
+		const results = stmt.all()
+
+		logger.debug(`Found ${results.length} books`)
+		return this.parseTagsInArray(results)
+	}
+
+	async create(data: BookAdd): Promise<BookRecord> {
+		const validated = BookAddSchema.parse(data)
+		logger.debug('Creatin new book', validated)
+
+		const db = await this.getActiveDatabase()
+
+		const fields = [
+			'title',
+			'totalVolumes',
+			'currentVolume',
+			'lastName',
+			'firstName',
+			'middleName',
+			'genre',
+			'content',
+			'annotation',
+			'year',
+			'tags',
+		]
+
+		const values = fields.map((field) => {
+			const value = (validated as any)[field]
+			return field === 'tags' ? JSON.stringify(value || []) : value
+		})
+
+		const placeholders = fields.map(() => '?').join(', ')
+		const fieldsList = fields.join(', ')
+
+		const stmt = db.prepare(`
+			INSERT INTO books (${fieldsList})
+			VALUES (${placeholders})	
+		`)
+
+		const result = stmt.run(...values)
+		const newId = Number(result.lastInsertRowid)
+
+		logger.debug(`Book created with id: ${newId}`)
+
+		return await this.get(newId)
+	}
+
+	async update(id: BookId, data: BookUpdate): Promise<BookRecord> {
+		const validated = BookUpdateSchema.parse(data)
+		logger.debug(`Updating book ${id}`, validated)
+
+		await this.get(id)
+
+		const db = await this.getActiveDatabase()
+
+		const fields = Object.keys(validated).filter(
+			(key) => validated[key as keyof BookUpdate] !== undefined,
+		)
+
+		if (fields.length === 0) {
+			logger.debug('No fields to update')
+			return await this.get(id)
+		}
+
+		const setClause = fields.map((field) => `${field} = ?`).join(', ')
+		const values = fields.map((field) => {
+			const value = (validated as any)[field]
+			return field === 'tags' ? JSON.stringify(value) : value
+		})
+
+		const stmt = db.prepare(`
+					UPDATE books 
+					SET ${setClause}
+					WHERE id = ?
 				`)
 
-			const result = insert.run(
-				book.title ?? null,
-				book.totalVolumes ?? null,
-				book.currentVolume ?? null,
-				book.lastName ?? null,
-				book.firstName ?? null,
-				book.middleName ?? null,
-				book.genre ?? null,
-				book.content ?? null,
-				book.annotation ?? null,
-				book.year ?? null,
-				JSON.stringify(book.tags || []),
-			)
+		const result = stmt.run(...values, id)
 
-			const createdBook = this.getById(
-				workspaceId,
-				result.lastInsertRowid as number,
-			)
-			logger.info(`Book created in workspace ${workspaceId}:`, {
-				id: result.lastInsertRowid,
-				title: book.title,
-			})
-
-			return createdBook
-		} catch (error) {
-			logger.error(`Failed to create book in workspace ${workspaceId}`, error)
-			throw new DatabaseError('Failed to create book', error)
+		if (result.changes === 0) {
+			throw new NotFoundError('Book', id.toString())
 		}
+
+		logger.debug(`Book ${id} updated, changes: ${result.changes}`)
+
+		return await this.get(id)
 	}
 
-	getById(workspaceId: string, id: number): BookRecord {
-		const dbPath = getWorkspacePaths(workspaceId).database
+	async delete(id: BookId): Promise<void> {
+		logger.debug(`Deleting book ${id}`)
 
-		try {
-			const db = this.dbManager.get(dbPath)
-			const book = db
-				.prepare('SELECT * FROM books WHERE id = ?')
-				.get(id) as BookRecord
+		await this.get(id)
 
-			if (!book) {
-				throw new NotFoundError('Book', id.toString())
+		const db = await this.getActiveDatabase()
+		const stmt = db.prepare('DELETE FROM books WHERE id = ?')
+		const result = stmt.run(id)
+
+		if (result.changes === 0) {
+			throw new NotFoundError('Book', id.toString())
+		}
+
+		logger.debug(`Book ${id} deleted`)
+	}
+
+	async deleteMany(data: BookIds): Promise<{ deletedCount: number }> {
+		const validated = BookIdsSchema.parse(data)
+		logger.debug(`Deleting multiple books: [${validated.ids.join(', ')}]`)
+
+		const db = await this.getActiveDatabase()
+
+		// Проверяем существование всех книг
+		for (const id of validated.ids) {
+			await this.get(id)
+		}
+
+		const placeholders = validated.ids.map(() => '?').join(', ')
+		const stmt = db.prepare(`DELETE FROM books WHERE id IN (${placeholders})`)
+		const result = stmt.run(...validated.ids)
+
+		logger.debug(`Deleted ${result.changes} books`)
+
+		return { deletedCount: result.changes }
+	}
+
+	// Private methods
+
+	/**
+	 * Получает активную базу данных
+	 */
+	private async getActiveDatabase() {
+		const activeWorkspace = await this.workspaceService.getActive()
+		if (!activeWorkspace) {
+			throw new ValidationError('No active workspace found')
+		}
+
+		const paths = this.workspaceService.getPaths(activeWorkspace.id)
+		return await this.dbManager.open(paths.relDatabasePath)
+	}
+
+	/**
+	 * Парсит теги из JSON строки
+	 */
+	private parseTags(book: any): BookRecord {
+		if (book.tags && typeof book.tags === 'string') {
+			try {
+				book.tags = JSON.parse(book.tags)
+			} catch {
+				book.tags = []
 			}
-
-			book.tags = book.tags ? JSON.parse(book.tags as unknown as string) : []
-			return book
-		} catch (error) {
-			if (error instanceof NotFoundError) throw error
-
-			logger.error(
-				`Failed to get book ${id} from workspace ${workspaceId}`,
-				error,
-			)
-			throw new DatabaseError('Failed to retrieve book', error)
 		}
+		return book as BookRecord
 	}
 
-	async update(
-		workspaceId: string,
-		id: number,
-		updates: Partial<Omit<BookRecord, 'id' | 'createdAt' | 'updatedAt'>>,
-	): Promise<BookRecord> {
-		const dbPath = getWorkspacePaths(workspaceId).database
-
-		try {
-			// Проверяем что книга существует
-			this.getById(workspaceId, id)
-
-			const db = this.dbManager.get(dbPath)
-
-			// Строим динамический запрос обновления
-			const fields = Object.keys(updates).filter((key) => key !== 'id')
-			if (fields.length === 0) {
-				return this.getById(workspaceId, id)
-			}
-
-			const setClause = fields.map((field) => `${field} = ?`).join(', ')
-			const values = fields.map((field) => updates[field as keyof BookRecord])
-
-			const update = db.prepare(`UPDATE books SET ${setClause} WHERE id = ?`)
-			update.run(...values, id)
-
-			logger.info(`Book updated in workspace ${workspaceId}:`, { id, fields })
-			return this.getById(workspaceId, id)
-		} catch (error) {
-			if (error instanceof NotFoundError) throw error
-
-			logger.error(
-				`Failed to update book ${id} in workspace ${workspaceId}`,
-				error,
-			)
-			throw new DatabaseError('Failed to update book', error)
-		}
+	/**
+	 * Парсит теги для массива книг
+	 */
+	private parseTagsInArray(books: any[]): BookRecord[] {
+		return books.map((book) => this.parseTags(book))
 	}
-
-	async delete(workspaceId: string, id: number): Promise<void> {
-		const dbPath = getWorkspacePaths(workspaceId).database
-
-		try {
-			// Проверяем что книга существует
-			const book = this.getById(workspaceId, id)
-
-			const db = this.dbManager.get(dbPath)
-			const result = db.prepare('DELETE FROM books WHERE id = ?').run(id)
-
-			if (result.changes === 0) {
-				throw new NotFoundError('Book', id.toString())
-			}
-
-			logger.info(`Book deleted from workspace ${workspaceId}:`, {
-				id,
-				title: book.title,
-			})
-		} catch (error) {
-			if (error instanceof NotFoundError) throw error
-			// TODO: Дифференцировать ошибки доступа к ФС (DB locked, permissions) от логических ошибок
-			//       и возвращать разные коды ошибок для фронтенда.
-			logger.error(
-				`Failed to delete book ${id} from workspace ${workspaceId}`,
-				error,
-			)
-			throw new DatabaseError('Failed to delete book', error)
-		}
-	}
-
-	async getAllBooks(workspaceId: string): Promise<BookRecord[]> {
-		const dbPath = getWorkspacePaths(workspaceId).database
-
-		try {
-			const db = this.dbManager.get(dbPath)
-			const books = db
-				.prepare('SELECT * FROM books ORDER BY createdAt DESC')
-				.all() as BookRecord[]
-
-			logger.debug(`Retrieved all books from workspace ${workspaceId}:`, {
-				count: books.length,
-			})
-			return books
-		} catch (error) {
-			logger.error(
-				`Failed to get all books from workspace ${workspaceId}`,
-				error,
-			)
-			throw new DatabaseError('Failed to retrieve books', error)
-		}
-	}
-
-	// async getStatistics(workspaceId: string): Promise<{
-	// 	totalBooks: number
-	// 	totalVolumes: number
-	// 	genreDistribution: { genre: string; count: number }[]
-	// 	yearDistribution: { year: number; count: number }[]
-	// 	topAuthors: { author: string; count: number }[]
-	// }> {
-	// 	const dbPath = this.getDbPath(workspaceId)
-
-	// 	try {
-	// 		const db = this.dbManager.get(dbPath)
-
-	// 		// Общее количество книг
-	// 		const totalBooks = (
-	// 			db.prepare('SELECT COUNT(*) as count FROM books').get() as {
-	// 				count: number
-	// 			}
-	// 		).count
-
-	// 		// Общее количество томов
-	// 		const totalVolumes =
-	// 			(
-	// 				db.prepare('SELECT SUM(totalVolumes) as sum FROM books').get() as {
-	// 					sum: number
-	// 				}
-	// 			).sum || 0
-
-	// 		// Распределение по жанрам
-	// 		const genreDistribution = db
-	// 			.prepare(
-	// 				`
-	// 			SELECT genre, COUNT(*) as count
-	// 			FROM books
-	// 			WHERE genre IS NOT NULL
-	// 			GROUP BY genre
-	// 			ORDER BY count DESC
-	// 		`,
-	// 			)
-	// 			.all() as { genre: string; count: number }[]
-
-	// 		// Распределение по годам
-	// 		const yearDistribution = db
-	// 			.prepare(
-	// 				`
-	// 			SELECT year, COUNT(*) as count
-	// 			FROM books
-	// 			WHERE year IS NOT NULL
-	// 			GROUP BY year
-	// 			ORDER BY year DESC
-	// 		`,
-	// 			)
-	// 			.all() as { year: number; count: number }[]
-
-	// 		// Топ авторы
-	// 		const topAuthors = db
-	// 			.prepare(
-	// 				`
-	// 			SELECT (lastName || ', ' || firstName) as author, COUNT(*) as count
-	// 			FROM books
-	// 			WHERE lastName IS NOT NULL AND firstName IS NOT NULL
-	// 			GROUP BY lastName, firstName
-	// 			ORDER BY count DESC
-	// 			LIMIT 10
-	// 		`,
-	// 			)
-	// 			.all() as { author: string; count: number }[]
-
-	// 		return {
-	// 			totalBooks,
-	// 			totalVolumes,
-	// 			genreDistribution,
-	// 			yearDistribution,
-	// 			topAuthors,
-	// 		}
-	// 	} catch (error) {
-	// 		logger.error(
-	// 			`Failed to get workspace statistics for ${workspaceId}`,
-	// 			error,
-	// 		)
-	// 		throw new DatabaseError('Failed to retrieve statistics', error)
-	// 	}
-	// }
 }

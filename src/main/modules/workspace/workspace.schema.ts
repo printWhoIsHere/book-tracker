@@ -1,5 +1,9 @@
 import { z } from 'zod'
 
+export type DeepPartial<T> = {
+	[P in keyof T]?: T[P] extends object ? DeepPartial<T[P]> : T[P]
+}
+
 export const WorkspaceRecordSchema = z.object({
 	id: z.string().uuid(),
 	name: z.string().min(1).max(100).trim(),
@@ -34,6 +38,27 @@ export const WorkspaceSettingsSchema = z.object({
 })
 export type WorkspaceSettings = z.infer<typeof WorkspaceSettingsSchema>
 
+// Схемы для создания и обновления
+export const CreateWorkspaceSchema = z.object({
+	name: z.string().min(1).max(100).trim(),
+})
+export type CreateWorkspace = z.infer<typeof CreateWorkspaceSchema>
+
+export const UpdateWorkspaceSchema = z.object({
+	name: z.string().min(1).max(100).trim().optional(),
+})
+export type UpdateWorkspace = z.infer<typeof UpdateWorkspaceSchema>
+
+export const WorkspacePathsSchema = z.object({
+	workspace: z.string(),
+	database: z.string(),
+	settings: z.string(),
+
+	relWorkspacePath: z.string(),
+	relDatabasePath: z.string(),
+})
+export type WorkspacePaths = z.infer<typeof WorkspacePathsSchema>
+
 export const defaultSettings: WorkspaceSettings = {
 	theme: 'system',
 	accentColor: 'zinc',
@@ -67,20 +92,3 @@ export const defaultSettings: WorkspaceSettings = {
 		includeSettings: false,
 	},
 }
-
-export const CreateWorkspaceSchema = z.object({
-	name: z.string().min(1).max(100).trim(),
-})
-
-export const UpdateWorkspaceSchema = z.object({
-	name: z.string().min(1).max(100).trim().optional(),
-})
-
-export const WorkspaceIdSchema = z.object({
-	id: z.string().uuid(),
-})
-
-export const UpdateSettingsSchema = z.object({
-	id: z.string().uuid(),
-	settings: WorkspaceSettingsSchema.optional(),
-})

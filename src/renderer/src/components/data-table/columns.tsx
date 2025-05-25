@@ -1,101 +1,82 @@
-import { ColumnDef } from '@tanstack/react-table'
-import { ArrowUpDown, MoreHorizontal } from 'lucide-react'
+import { createColumnHelper } from '@tanstack/react-table'
 
-import { Button } from '@renderer/components/ui/button'
-import { Checkbox } from '@renderer/components/ui/checkbox'
-import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuItem,
-	DropdownMenuLabel,
-	DropdownMenuSeparator,
-	DropdownMenuTrigger,
-} from '@renderer/components/ui/dropdown-menu'
+import * as Header from '@renderer/components/data-table/headers'
+import * as Cell from '@renderer/components/data-table/cells'
 
-export type Payment = {
-	id: string
-	amount: number
-	status: 'pending' | 'processing' | 'success' | 'failed'
-	email: string
-}
+import type { BookRecord } from '@renderer/types/book'
 
-export const columns: ColumnDef<Payment>[] = [
-	{
+const columnHelper = createColumnHelper<BookRecord>()
+
+export const columns = [
+	columnHelper.display({
 		id: 'select',
-		cell: ({ row }) => (
-			<Checkbox
-				checked={row.getIsSelected()}
-				onCheckedChange={(value) => row.toggleSelected(!!value)}
-				aria-label='Select row'
-			/>
-		),
+		cell: ({ row }) => <Cell.CellSelect row={row} />,
 		enableSorting: false,
 		enableHiding: false,
-	},
-	{
-		accessorKey: 'status',
-		header: 'Status',
-		cell: ({ row }) => (
-			<div className='capitalize'>{row.getValue('status')}</div>
-		),
-	},
-	{
-		accessorKey: 'email',
-		header: ({ column }) => {
-			return (
-				<Button
-					variant='ghost'
-					onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
-				>
-					Email
-					<ArrowUpDown />
-				</Button>
-			)
-		},
-		cell: ({ row }) => <div className='lowercase'>{row.getValue('email')}</div>,
-	},
-	{
-		accessorKey: 'amount',
-		header: () => <div className='text-right'>Amount</div>,
-		cell: ({ row }) => {
-			const amount = parseFloat(row.getValue('amount'))
+		minSize: 60,
+		maxSize: 60,
+		size: 60,
+	}),
 
-			// Format the amount as a dollar amount
-			const formatted = new Intl.NumberFormat('en-US', {
-				style: 'currency',
-				currency: 'USD',
-			}).format(amount)
+	columnHelper.accessor('title', {
+		header: (info) => <Header.HeaderSortable info={info} label='Название' />,
+		cell: (info) => info.getValue(),
+		minSize: 160,
+	}),
 
-			return <div className='text-right font-medium'>{formatted}</div>
-		},
-	},
-	{
+	columnHelper.accessor('totalVolumes', {
+		header: (info) => <Header.HeaderMenu info={info} label='Т' />,
+		cell: (info) => info.getValue(),
+		minSize: 60,
+		maxSize: 60,
+	}),
+
+	columnHelper.accessor('currentVolume', {
+		header: (info) => <Header.HeaderMenu info={info} label='№' />,
+		cell: (info) => info.getValue(),
+		minSize: 60,
+		maxSize: 60,
+	}),
+
+	columnHelper.accessor('genre', {
+		header: (info) => <Header.HeaderSortable info={info} label='Жанр' />,
+		cell: (info) => info.getValue(),
+		minSize: 160,
+	}),
+
+	columnHelper.accessor('content', {
+		header: (info) => <Header.HeaderMenu info={info} label='Содержание' />,
+		cell: (info) => info.getValue(),
+		minSize: 160,
+	}),
+
+	columnHelper.accessor('annotation', {
+		header: (info) => <Header.HeaderMenu info={info} label='Аннотация' />,
+		cell: (info) => info.getValue(),
+		minSize: 160,
+	}),
+
+	columnHelper.accessor('year', {
+		header: (info) => <Header.HeaderMenu info={info} label='Год' />,
+		cell: (info) => info.getValue(),
+		maxSize: 60,
+		minSize: 60,
+		size: 60,
+	}),
+
+	columnHelper.accessor('tags', {
+		header: (info) => <Header.HeaderMenu info={info} label='Ярлыки' />,
+		cell: ({ row }) => <Cell.CellMultiSelect array={row.original.tags} />,
+		minSize: 160,
+	}),
+
+	columnHelper.display({
 		id: 'actions',
+		cell: ({ row }) => <Cell.CellActions row={row} />,
+		enableSorting: false,
 		enableHiding: false,
-		cell: ({ row }) => {
-			const payment = row.original
-
-			return (
-				<DropdownMenu>
-					<DropdownMenuTrigger asChild>
-						<Button variant='ghost' className='h-8 w-8 p-0'>
-							<span className='sr-only'>Open menu</span>
-							<MoreHorizontal />
-						</Button>
-					</DropdownMenuTrigger>
-					<DropdownMenuContent align='end'>
-						<DropdownMenuLabel>Actions</DropdownMenuLabel>
-						<DropdownMenuItem
-							onClick={() => navigator.clipboard.writeText(payment.id)}
-						>
-							Copy payment ID
-						</DropdownMenuItem>
-						<DropdownMenuSeparator />
-						<DropdownMenuItem>View customer</DropdownMenuItem>
-						<DropdownMenuItem>View payment details</DropdownMenuItem>
-					</DropdownMenuContent>
-				</DropdownMenu>
-			)
-		},
-	},
+		minSize: 64,
+		maxSize: 64,
+		size: 64,
+	}),
 ]

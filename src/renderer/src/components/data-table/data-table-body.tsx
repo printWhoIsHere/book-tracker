@@ -2,7 +2,12 @@ import { useEffect, useMemo } from 'react'
 import { Table as ReactTable } from '@tanstack/react-table'
 import { useVirtualizer } from '@tanstack/react-virtual'
 
-import { Table, TableBody, TableRow } from '@renderer/components/ui/table'
+import {
+	Table,
+	TableBody,
+	TableCell,
+	TableRow,
+} from '@renderer/components/ui/table'
 import { CellDefault } from '@renderer/components/data-table/cells'
 
 interface VirtualizedTableBodyProps<TData> {
@@ -11,6 +16,7 @@ interface VirtualizedTableBodyProps<TData> {
 	rowHeight: number
 	tableContainerRef: React.RefObject<HTMLDivElement>
 	outerContainerRef: React.RefObject<HTMLDivElement>
+	isLoading: boolean
 }
 
 export function VirtualizedTableBody<TData>({
@@ -19,6 +25,7 @@ export function VirtualizedTableBody<TData>({
 	rowHeight,
 	tableContainerRef,
 	outerContainerRef,
+	isLoading,
 }: VirtualizedTableBodyProps<TData>) {
 	const { rows } = table.getRowModel()
 
@@ -58,7 +65,7 @@ export function VirtualizedTableBody<TData>({
 	return (
 		<div
 			ref={tableContainerRef}
-			className='flex-1 overflow-y-auto overflow-x-hidden'
+			className='flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide hover:overflow-y-auto'
 			onWheel={handleWheel}
 		>
 			<Table {...tableProps}>
@@ -68,24 +75,38 @@ export function VirtualizedTableBody<TData>({
 						position: 'relative',
 					}}
 				>
-					{virtualRows.map((virtualItem) => {
-						const row = rows[virtualItem.index]
-						return (
-							<TableRow
-								key={virtualItem.key}
-								className='absolute top-0 left-0 flex w-full items-center'
-								style={{
-									height: `${virtualItem.size}px`,
-									transform: `translateY(${virtualItem.start}px)`,
-								}}
-								data-state={row.getIsSelected() && 'selected'}
-							>
-								{row.getVisibleCells().map((cell) => (
-									<CellDefault key={cell.id} cell={cell} />
-								))}
-							</TableRow>
-						)
-					})}
+					{isLoading ? (
+						<TableRow>
+							<TableCell colSpan={virtualRows.length} className='text-center'>
+								Загрузка...
+							</TableCell>
+						</TableRow>
+					) : virtualRows.length ? (
+						virtualRows.map((virtualItem) => {
+							const row = rows[virtualItem.index]
+							return (
+								<TableRow
+									key={virtualItem.key}
+									className='absolute top-0 left-0 flex w-full items-center'
+									style={{
+										height: `${virtualItem.size}px`,
+										transform: `translateY(${virtualItem.start}px)`,
+									}}
+									data-state={row.getIsSelected() && 'selected'}
+								>
+									{row.getVisibleCells().map((cell) => (
+										<CellDefault key={cell.id} cell={cell} />
+									))}
+								</TableRow>
+							)
+						})
+					) : (
+						<TableRow>
+							<TableCell colSpan={virtualRows.length} className='text-center'>
+								Нет результатов.
+							</TableCell>
+						</TableRow>
+					)}
 				</TableBody>
 			</Table>
 		</div>

@@ -1,41 +1,57 @@
 import { ipcRenderer } from 'electron'
 
-import type { BookRecord } from '@main/modules/book/book.schema'
+import type {
+	DeepPartial,
+	WorkspaceSettings,
+} from '@main/modules/workspace/workspace.schema'
+import type {
+	BookRecord,
+	BookId,
+	BookAdd,
+	BookUpdate,
+	BookIds,
+} from '@main/modules/book/book.schema'
 
 const api = {
 	workspace: {
-		create: (name: string) => ipcRenderer.invoke('workspace:create', { name }),
+		create: (data: { name: string }) =>
+			ipcRenderer.invoke('workspace:create', data),
 		list: () => ipcRenderer.invoke('workspace:list'),
 		getActive: () => ipcRenderer.invoke('workspace:get-active'),
-		setActive: (id: string) =>
-			ipcRenderer.invoke('workspace:set-active', { id }),
-		update: (id: string, updates: any) =>
-			ipcRenderer.invoke('workspace:update', { id, updates }),
-		remove: (id: string) => ipcRenderer.invoke('workspace:remove', { id }),
-		getSettings: (id: string) =>
-			ipcRenderer.invoke('workspace:get-settings', { id }),
-		setSettings: (id: string, settings: any) =>
-			ipcRenderer.invoke('workspace:set-settings', { id, settings }),
+		setActive: (data: { id: string | null }) =>
+			ipcRenderer.invoke('workspace:set-active', data),
+		getById: (data: { id: string }) =>
+			ipcRenderer.invoke('workspace:get-by-id', data),
+		update: (data: { id: string; updates: { name?: string } }) =>
+			ipcRenderer.invoke('workspace:update', data),
+		remove: (data: { id: string }) =>
+			ipcRenderer.invoke('workspace:remove', data),
+		getSettings: (data: { id: string }) =>
+			ipcRenderer.invoke('workspace:get-settings', data),
+		setSettings: (data: {
+			id: string
+			settings: DeepPartial<WorkspaceSettings>
+		}) => ipcRenderer.invoke('workspace:set-settings', data),
+		getPaths: (data: { id: string }) =>
+			ipcRenderer.invoke('workspace:get-paths', data),
+		getStats: (data: { id: string }) =>
+			ipcRenderer.invoke('workspace:get-stats', data),
+		export: (data: { id: string }) =>
+			ipcRenderer.invoke('workspace:export', data),
 	},
 
 	book: {
-		get: (workspaceId: string, id: number) =>
-			ipcRenderer.invoke('book:get', { workspaceId, id }),
-		getAll: (workspaceId: string) =>
-			ipcRenderer.invoke('book:getAll', { workspaceId }),
-		create: (
-			workspaceId: string,
-			book: Partial<Omit<BookRecord, 'id' | 'createdAt' | 'updatedAt'>>,
-		) => ipcRenderer.invoke('book:create', { workspaceId, book }),
-		update: (
-			workspaceId: string,
-			id: number,
-			update: Partial<Omit<BookRecord, 'id' | 'createdAt' | 'updatedAt'>>,
-		) => ipcRenderer.invoke('book:update', { workspaceId, id, update }),
-		delete: (workspaceId: string, id: number) =>
-			ipcRenderer.invoke('book:delete', { workspaceId, id }),
-		deleteMany: (workspaceId: string, ids: number[]) =>
-			ipcRenderer.invoke('book:deleteMany', { workspaceId, ids }),
+		get: (id: BookId): Promise<BookRecord> =>
+			ipcRenderer.invoke('book:get', { id }),
+		getAll: (): Promise<BookRecord[]> => ipcRenderer.invoke('book:get-all'),
+		create: (data: BookAdd): Promise<BookRecord> =>
+			ipcRenderer.invoke('book:create', data),
+		update: (data: { id: BookId; data: BookUpdate }): Promise<BookRecord> =>
+			ipcRenderer.invoke('book:update', data),
+		delete: (data: { id: BookId }): Promise<void> =>
+			ipcRenderer.invoke('book:delete', data),
+		deleteMany: (data: { ids: BookIds }): Promise<{ deletedCount: number }> =>
+			ipcRenderer.invoke('book:delete-many', data),
 	},
 }
 

@@ -12,21 +12,20 @@ import { Alert, AlertDescription } from '@renderer/components/ui/alert'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import { Separator } from '@renderer/components/ui/separator'
 
-import { cn } from '@renderer/lib/utils'
-import { useWorkspace } from '@renderer/hooks/useWorkspace'
+import { cn } from '@renderer/lib/cn'
+import { useWorkspace } from '@renderer/hooks/data/useWorkspace'
 import { defaultWorkspaceSchema } from '@renderer/assets/defaultSchema'
 
 const workspaceFormSchema = z.object({
 	workspaceName: z.string().min(1, { message: 'Введите название workspace' }),
 })
-
 type WorkspaceFormValues = z.infer<typeof workspaceFormSchema>
 
 function CreateWorkspaceForm({
 	className,
 	...props
 }: React.ComponentProps<'div'>) {
-	const { create: createWorkspace, isCreating } = useWorkspace()
+	const { createWorkspace, isMutating } = useWorkspace()
 
 	const form = useForm<WorkspaceFormValues>({
 		resolver: zodResolver(workspaceFormSchema),
@@ -45,9 +44,9 @@ function CreateWorkspaceForm({
 
 	const workspaceName = watch('workspaceName')
 
-	const onSubmit = async (values: WorkspaceFormValues) => {
+	const onSubmit = (values: WorkspaceFormValues) => {
 		try {
-			const newId = await createWorkspace({
+			createWorkspace({
 				name: values.workspaceName,
 			})
 			reset()
@@ -96,11 +95,11 @@ function CreateWorkspaceForm({
 
 								<Button
 									type='submit'
-									disabled={isCreating || !workspaceName.trim()}
+									disabled={isMutating || !workspaceName.trim()}
 									className='w-full'
 									size='lg'
 								>
-									{isCreating ? 'Creating Workspace...' : 'Create Workspace'}
+									{isMutating ? 'Creating Workspace...' : 'Create Workspace'}
 								</Button>
 							</form>
 

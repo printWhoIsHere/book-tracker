@@ -1,4 +1,6 @@
-const BookSchema = z.object({
+import { z } from 'zod'
+
+const BookRecordSchema = z.object({
 	id: z.number(),
 	title: z.string().nullable(),
 	totalVolumes: z.number().nullable(),
@@ -14,4 +16,27 @@ const BookSchema = z.object({
 	createdAt: z.string().optional(),
 	updatedAt: z.string().optional(),
 })
-type Book = z.infer<typeof BookSchema>
+
+const BookIdSchema = z.number().int().positive()
+
+const BookAddSchema = BookRecordSchema.omit({
+	id: true,
+	createdAt: true,
+	updatedAt: true,
+}).partial()
+
+const BookUpdateSchema = BookRecordSchema.omit({
+	id: true,
+	createdAt: true,
+	updatedAt: true,
+}).partial()
+
+const BookIdsSchema = z.object({
+	ids: z.array(BookIdSchema).min(1),
+})
+
+type BookRecord = z.infer<typeof BookRecordSchema>
+type BookId = z.infer<typeof BookIdSchema>
+type BookIds = z.infer<typeof BookIdsSchema>
+type BookAdd = z.infer<typeof BookAddSchema>
+type BookUpdate = z.infer<typeof BookUpdateSchema>

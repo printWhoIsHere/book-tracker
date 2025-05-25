@@ -1,16 +1,13 @@
 import { flexRender, Header } from '@tanstack/react-table'
-import { cn } from '@renderer/lib/utils'
 
+import { HeaderResizer } from '@renderer/components/data-table/headers'
 import { TableHead } from '@renderer/components/ui/table'
-import { Separator } from '@renderer/components/ui/separator'
 
 interface HeaderDefaultProps<TData> {
 	header: Header<TData, unknown>
 }
 
 export function HeaderDefault<TData>({ header }: HeaderDefaultProps<TData>) {
-	const resizeHandler = header.getResizeHandler()
-
 	return (
 		<TableHead
 			key={header.column.id}
@@ -26,27 +23,7 @@ export function HeaderDefault<TData>({ header }: HeaderDefaultProps<TData>) {
 				{flexRender(header.column.columnDef.header, header.getContext())}
 			</span>
 
-			{/* Ресайзер */}
-			{!header.column.getIsLastColumn?.() && (
-				<div
-					className={cn(
-						'group absolute top-0 right-0 h-full w-[10px] z-10 flex items-center justify-center',
-					)}
-					style={{ cursor: 'col-resize', touchAction: 'none' }}
-					onMouseDown={resizeHandler}
-					onTouchStart={resizeHandler}
-					onDoubleClick={() => header.column.resetSize()}
-				>
-					<Separator
-						orientation='vertical'
-						className={cn(
-							'h-1/2  m-auto rounded-sm transition-colors duration-150',
-							'group-hover:bg-foreground',
-							header.column.getIsResizing() && 'bg-secondary',
-						)}
-					/>
-				</div>
-			)}
+			{!header.column.getIsLastColumn?.() && <HeaderResizer header={header} />}
 		</TableHead>
 	)
 }

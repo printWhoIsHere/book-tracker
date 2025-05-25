@@ -8,7 +8,7 @@ import {
 	CircleFadingArrowUpIcon,
 } from 'lucide-react'
 
-import { cn } from '@renderer/lib/utils'
+import { cn } from '@renderer/lib/cn'
 
 const ToastProvider = ToastPrimitives.Provider
 

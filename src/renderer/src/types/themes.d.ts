@@ -1,4 +1,4 @@
-type ThemeColors = 'zinc'
+type ThemeColors = 'zinc' | 'rose'
 
 type ThemeMode = 'dark' | 'light' | 'system'
 

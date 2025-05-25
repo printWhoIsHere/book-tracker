@@ -9,110 +9,15 @@ import {
 } from '@tanstack/react-table'
 import { useVirtualizer } from '@tanstack/react-virtual'
 
-import { useWorkspace } from '@renderer/hooks/useWorkspace'
-import { columns, Payment } from './columns'
-import { TablePagination } from './data-table-pagination'
-import { TableContainer } from './data-table-container'
-import { VirtualizedTableBody } from './data-table-body'
-import { TableHeader } from './data-table-header'
-import { useBook } from '@renderer/hooks/useBook'
+import { useBook } from '@renderer/hooks/data/useBook'
 
-const data: Payment[] = [
-	{
-		id: 'm5gr84i9',
-		amount: 316,
-		status: 'success',
-		email: 'ken99@example.com',
-	},
-	{
-		id: '3u1reuv4',
-		amount: 242,
-		status: 'success',
-		email: 'Abe45@example.com',
-	},
-	{
-		id: 'derv1ws0',
-		amount: 837,
-		status: 'processing',
-		email: 'Monserrat44@example.com',
-	},
-	{
-		id: '5kma53ae',
-		amount: 874,
-		status: 'success',
-		email: 'Silas22@example.com',
-	},
-	{
-		id: 'bhqecj4p',
-		amount: 721,
-		status: 'failed',
-		email: 'carmella@example.com',
-	},
-	{
-		id: 'm5gr84i9',
-		amount: 316,
-		status: 'success',
-		email: 'ken99@example.com',
-	},
-	{
-		id: '3u1reuv4',
-		amount: 242,
-		status: 'success',
-		email: 'Abe45@example.com',
-	},
-	{
-		id: 'derv1ws0',
-		amount: 837,
-		status: 'processing',
-		email: 'Monserrat44@example.com',
-	},
-	{
-		id: '5kma53ae',
-		amount: 874,
-		status: 'success',
-		email: 'Silas22@example.com',
-	},
-	{
-		id: 'bhqecj4p',
-		amount: 721,
-		status: 'failed',
-		email: 'carmella@example.com',
-	},
-	{
-		id: 'm5gr84i9',
-		amount: 316,
-		status: 'success',
-		email: 'ken99@example.com',
-	},
-	{
-		id: '3u1reuv4',
-		amount: 242,
-		status: 'success',
-		email: 'Abe45@example.com',
-	},
-	{
-		id: 'derv1ws0',
-		amount: 837,
-		status: 'processing',
-		email: 'Monserrat44@example.com',
-	},
-	{
-		id: '5kma53ae',
-		amount: 874,
-		status: 'success',
-		email: 'Silas22@example.com',
-	},
-	{
-		id: 'bhqecj4p',
-		amount: 721,
-		status: 'failed',
-		email: 'carmella@example.com',
-	},
-]
+import { columns } from '@renderer/components/data-table/columns'
+import { TablePagination } from '@renderer/components/data-table/data-table-pagination'
+import { TableContainer } from '@renderer/components/data-table/data-table-container'
+import { VirtualizedTableBody } from '@renderer/components/data-table/data-table-body'
+import { TableHeader } from '@renderer/components/data-table/data-table-header'
 
 export function DataTable() {
-	const { activeWorkspace } = useWorkspace()
-	console.log('Active >>> ', activeWorkspace)
 	const { books, isLoading } = useBook()
 
 	const [sorting, setSorting] = useState<SortingState>([])
@@ -126,7 +31,7 @@ export function DataTable() {
 	})
 
 	const table = useReactTable({
-		data,
+		data: books,
 		columns,
 		columnResizeMode: 'onChange',
 		columnResizeDirection: 'ltr',
@@ -178,6 +83,7 @@ export function DataTable() {
 					rowHeight={64}
 					tableContainerRef={tableContainerRef}
 					outerContainerRef={outerContainerRef}
+					isLoading={isLoading}
 				/>
 			</TableContainer>
 
