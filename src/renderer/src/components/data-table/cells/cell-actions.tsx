@@ -21,9 +21,25 @@ export function CellActions<TData>({ row }: CellActionsProps<TData>) {
 	const { deleteBook } = useBook()
 	const { openModal } = useModal()
 
-	const handleEdit = () => {}
-	const handleViewDetails = () => {}
-	const handleDelete = () => {}
+	const handleEdit = () => {
+		// Открыть модал редактирования
+		openModal('editBook', { book: bookData })
+	}
+
+	const handleViewDetails = () => {
+		// Открыть модал с деталями книги
+		openModal('bookDetails', { book: bookData })
+	}
+
+	const handleDelete = async () => {
+		if (window.confirm('Вы уверены, что хотите удалить эту книгу?')) {
+			try {
+				await deleteBook(bookData.id)
+			} catch (error) {
+				console.error('Ошибка при удалении книги:', error)
+			}
+		}
+	}
 
 	return (
 		<DropdownMenu>

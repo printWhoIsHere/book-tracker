@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react'
+import { useCallback, useMemo, memo } from 'react'
 import type { Table as TableProps } from '@tanstack/react-table'
 import { useVirtualizer } from '@tanstack/react-virtual'
 
@@ -11,16 +11,14 @@ interface DataTableBodyProps<TData> {
 	rowHeight: number
 	tableContainerRef: React.RefObject<HTMLDivElement>
 	outerContainerRef: React.RefObject<HTMLDivElement>
-	isLoading: boolean
 }
 
-export function DataTableBody<TData>({
+export const DataTableBody = memo(function DataTableBody<TData>({
 	table,
 	totalTableWidth,
 	rowHeight,
 	tableContainerRef,
 	outerContainerRef,
-	isLoading,
 }: DataTableBodyProps<TData>) {
 	const { rows } = table.getRowModel()
 
@@ -28,7 +26,7 @@ export function DataTableBody<TData>({
 		count: rows.length,
 		getScrollElement: () => tableContainerRef.current,
 		estimateSize: useCallback(() => rowHeight, [rowHeight]),
-		overscan: 5,
+		overscan: 3,
 	})
 
 	const virtualRows = rowVirtualizer.getVirtualItems()
@@ -63,31 +61,6 @@ export function DataTableBody<TData>({
 		}),
 		[rowVirtualizer.getTotalSize()],
 	)
-
-	if (isLoading) {
-		return (
-			<div
-				ref={tableContainerRef}
-				className='flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide'
-			>
-				<Table.Table {...tableProps}>
-					<Table.TableBody>
-						<Table.TableRow>
-							<Table.TableCell
-								colSpan={table.getAllColumns().length}
-								className='text-center py-8'
-							>
-								<div className='flex items-center justify-center space-x-2'>
-									<div className='animate-spin rounded-full h-4 w-4 border-b-2 border-primary'></div>
-									<span>Загрузка...</span>
-								</div>
-							</Table.TableCell>
-						</Table.TableRow>
-					</Table.TableBody>
-				</Table.Table>
-			</div>
-		)
-	}
 
 	if (!virtualRows.length) {
 		return (
@@ -128,23 +101,41 @@ export function DataTableBody<TData>({
 					{virtualRows.map((virtualItem) => {
 						const row = rows[virtualItem.index]
 						return (
-							<Table.TableRow
+							<VirtualRow
 								key={virtualItem.key}
-								className='absolute top-0 left-0 flex w-full items-center hover:bg-muted/50 transition-colors'
+								row={row}
+								virtualItem={virtualItem}
 								style={{
 									height: `${virtualItem.size}px`,
 									transform: `translateY(${virtualItem.start}px)`,
 								}}
-								data-state={row.getIsSelected() && 'selected'}
-							>
-								{row.getVisibleCells().map((cell) => (
-									<CellDefault key={cell.id} cell={cell} />
-								))}
-							</Table.TableRow>
+							/>
 						)
 					})}
 				</Table.TableBody>
 			</Table.Table>
 		</div>
 	)
-}
+})
+
+const VirtualRow = memo(function VirtualRow({
+	row,
+	virtualItem,
+	style,
+}: {
+	row: any
+	virtualItem: any
+	style: React.CSSProperties
+}) {
+	return (
+		<Table.TableRow
+			className='absolute top-0 left-0 flex w-full items-center hover:bg-muted/50 transition-colors'
+			style={style}
+			data-state={row.getIsSelected() && 'selected'}
+		>
+			{row.getVisibleCells().map((cell: any) => (
+				<CellDefault key={cell.id} cell={cell} />
+			))}
+		</Table.TableRow>
+	)
+})

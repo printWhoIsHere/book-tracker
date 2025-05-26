@@ -1,7 +1,6 @@
 import { QueryClientProvider, QueryClient } from '@tanstack/react-query'
 import { ThemeProvider } from '@renderer/providers/theme-provider'
 import { SidebarProvider } from '@renderer/providers/sidebar-provider'
-import { TableProvider } from '@renderer/providers/table-provider'
 import { ModalProvider } from '@renderer/providers/modal-provider'
 import { Toaster } from '@renderer/components/ui/toaster'
 
@@ -18,13 +17,11 @@ function RootLayout({ children }: { children: React.ReactNode }): JSX.Element {
 	return (
 		<QueryClientProvider client={queryClient}>
 			<ThemeProvider defaultTheme='dark' storageKey='ui-theme'>
-				<TableProvider>
-					<SidebarProvider>
-						<ModalProvider />
-						{children}
-						<Toaster />
-					</SidebarProvider>
-				</TableProvider>
+				<SidebarProvider>
+					<ModalProvider />
+					{children}
+					<Toaster />
+				</SidebarProvider>
 			</ThemeProvider>
 		</QueryClientProvider>
 	)

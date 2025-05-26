@@ -10,7 +10,9 @@ export function Header() {
 				<Separator orientation='vertical' className='mx-2 h-4' />
 				<h1 className='text-base font-medium text-foreground'>Data Table</h1>
 			</div>
-			<div className='flex gap-2 px-4'>{/* DataTableToolbar */}</div>
+			<div className='flex gap-2 px-4'>
+				<DataTableToolbar reverse />
+			</div>
 		</header>
 	)
 }

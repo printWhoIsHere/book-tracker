@@ -1,52 +1,53 @@
-import { useMemo } from 'react'
-import type { Table } from '@tanstack/react-table'
+import { useMemo, useState, useEffect } from 'react'
 import { RotateCcw } from 'lucide-react'
 
 import { cn } from '@renderer/lib/cn'
+import { useDebounce } from '@renderer/hooks/useDebounce'
+import { useDataTable } from '@renderer/providers/data-table-provider'
 
-import {
-	ColumnFilter,
-	ColumnSearch,
-} from '@renderer/components/data-table/filters'
+import { ColumnFilter } from '@renderer/components/data-table/filters'
 import { Button } from '@renderer/components/ui/button'
-import { Input } from '../ui/input'
+import { Input } from '@renderer/components/ui/input'
 
-interface DataTableToolbarProps<TData>
-	extends React.HTMLAttributes<HTMLDivElement> {
-	table: Table<TData>
-	filterFields?: DataTableFilterField<TData>[]
-	onGlobalSearch?: (value: string) => void
+interface DataTableToolbarProps extends React.HTMLAttributes<HTMLDivElement> {
+	reverse?: boolean
 }
 
-export function DataTableToolbar<TData>({
-	table,
-	filterFields = [],
-	onGlobalSearch,
+export function DataTableToolbar({
 	children,
 	className,
+	reverse,
 	...props
-}: DataTableToolbarProps<TData>) {
+}: DataTableToolbarProps) {
+	const { table, globalFilter, setGlobalFilter, filterFields } = useDataTable()
+
+	const [searchValue, setSearchValue] = useState(globalFilter)
+	const debouncedSearchValue = useDebounce(searchValue, 300)
+
+	useEffect(() => {
+		setGlobalFilter(debouncedSearchValue)
+	}, [debouncedSearchValue, setGlobalFilter])
+
 	const isFiltered = table.getState().columnFilters.length > 0
 	const isSorted = table.getState().sorting.length > 0
 
-	const { globalField, searchableFields, filterableFields } = useMemo(() => {
+	const { globalField, filterableFields } = useMemo(() => {
 		const gf = filterFields.find((f) => f.value === 'search')
 		return {
 			globalField: gf,
-			searchableFields: [],
 			filterableFields: filterFields.filter(
 				(f) => f.options && f.value !== 'search',
 			),
 		}
 	}, [filterFields])
 
-	const shouldShowReset =
-		isFiltered || isSorted || table.getState().globalFilter
+	const shouldShowReset = isFiltered || isSorted || globalFilter
 
 	const handleReset = () => {
 		table.resetColumnFilters()
 		table.resetSorting()
-		table.resetGlobalFilter()
+		setGlobalFilter('')
+		setSearchValue('')
 	}
 
 	return (
@@ -57,18 +58,24 @@ export function DataTableToolbar<TData>({
 			)}
 			{...props}
 		>
-			<div className='flex flex-1 items-center space-x-2'>
-				{globalField && onGlobalSearch && (
+			<div
+				className={cn(
+					'flex flex-1 items-center space-x-2',
+					reverse && 'flex-row-reverse',
+				)}
+			>
+				{globalField && (
+					// TODO: Вынести в GlobalSearch.tsx (переписать)
 					<Input
 						type='text'
-						value={table.getState().globalFilter ?? ''}
-						onChange={(e) => onGlobalSearch(e.target.value)}
+						value={searchValue}
+						onChange={(e) => setSearchValue(e.target.value)}
 						placeholder={globalField.placeholder}
-						className='input input-sm'
 					/>
 				)}
 
 				{filterableFields.map(
+					// TODO: Типизировапть
 					(column) =>
 						table.getColumn(column.value ? String(column.value) : '') && (
 							<ColumnFilter

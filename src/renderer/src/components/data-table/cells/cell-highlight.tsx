@@ -5,15 +5,31 @@ interface CellHighlightProps {
 	searchTerm: string
 }
 
+const highlightCache = new Map<string, React.ReactNode>()
+
 export function CellHighlight({ value, searchTerm }: CellHighlightProps) {
 	const highlightedText = useMemo(() => {
 		if (!value || !searchTerm) return value || ''
 
 		const text = String(value)
-		const term = searchTerm.toLowerCase()
+		const term = searchTerm.toLowerCase().trim()
+
+		if (!term) return text
+
+		// Создаем ключ для кэша
+		const cacheKey = `${text}:${term}`
+
+		// Проверяем кэш
+		if (highlightCache.has(cacheKey)) {
+			return highlightCache.get(cacheKey)
+		}
+
 		const lowerText = text.toLowerCase()
 
-		if (!lowerText.includes(term)) return text
+		if (!lowerText.includes(term)) {
+			highlightCache.set(cacheKey, text)
+			return text
+		}
 
 		const parts = []
 		let lastIndex = 0
@@ -41,8 +57,17 @@ export function CellHighlight({ value, searchTerm }: CellHighlightProps) {
 			parts.push(text.substring(lastIndex))
 		}
 
-		return parts
+		const result = <span>{parts}</span>
+
+		// Ограничиваем размер кэша
+		if (highlightCache.size > 1000) {
+			const firstKey = highlightCache.keys().next().value
+			highlightCache.delete(firstKey)
+		}
+
+		highlightCache.set(cacheKey, result)
+		return result
 	}, [value, searchTerm])
 
-	return <span>{highlightedText}</span>
+	return highlightedText as React.ReactElement
 }

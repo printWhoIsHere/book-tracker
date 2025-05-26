@@ -1,25 +1,25 @@
 import { useCallback } from 'react'
 import { useModal } from '@renderer/hooks/useModal'
+import { useDataTable } from '@renderer/providers/data-table-provider'
 import { ConfirmModal } from '@renderer/components/modals'
-import { useTableContext } from '@renderer/providers/table-provider'
 
 export const useSidebarActions = () => {
 	const { openModal } = useModal()
-	const { selectedRows } = useTableContext()
+	const { table } = useDataTable()
 
 	const handleDeleteSelected = useCallback(async () => {
-		if (!selectedRows.length) return
+		if (!table.selectedRows.length) return
 
 		openModal(ConfirmModal, {
 			title: 'Подтвердите действие',
 			props: {
-				message: `Удалить выбранные книги (${selectedRows.length})?`,
+				message: `Удалить выбранные книги (${table.selectedRows.length})?`,
 				onConfirm: async () => {
-					console.log('Deleting books:', selectedRows)
+					console.log('Deleting books:', table.selectedRows)
 				},
 			},
 		})
-	}, [selectedRows, openModal])
+	}, [table.selectedRows, openModal])
 
 	const actions = {
 		deleteSelected: handleDeleteSelected,

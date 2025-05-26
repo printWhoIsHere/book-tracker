@@ -25,7 +25,7 @@ export const columns = [
 		cell: (info) => (
 			<Cell.CellHighlight
 				value={info.getValue()}
-				searchTerm={getSearchTerm(info.table)}
+				searchTerm={info.table.getState().globalFilter}
 			/>
 		),
 		enableColumnFilter: false,
@@ -70,7 +70,7 @@ export const columns = [
 		cell: (info) => (
 			<Cell.CellHighlight
 				value={info.getValue()}
-				searchTerm={info.getValue()}
+				searchTerm={info.table.getState().globalFilter}
 			/>
 		),
 		enableColumnFilter: false,
@@ -82,9 +82,10 @@ export const columns = [
 		cell: (info) => (
 			<Cell.CellHighlight
 				value={info.getValue()}
-				searchTerm={getSearchTerm(info.table)}
+				searchTerm={info.table.getState().globalFilter}
 			/>
 		),
+
 		enableColumnFilter: false,
 		minSize: 160,
 	}),
@@ -115,8 +116,3 @@ export const columns = [
 		size: 64,
 	}),
 ]
-
-function getSearchTerm(table: any): string {
-	const searchFilter = table.getColumn('search')?.getFilterValue()
-	return searchFilter ? String(searchFilter) : ''
-}

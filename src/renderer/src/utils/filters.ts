@@ -1,26 +1,35 @@
 import { Row } from '@tanstack/react-table'
 
-/**
- * Filter function for multi-column search.
- */
+const searchCache = new Map<string, string>()
+
+function getCachedLowerCase(str: string): string {
+	if (!searchCache.has(str)) {
+		searchCache.set(str, str.toLowerCase())
+	}
+	return searchCache.get(str)!
+}
+
 export function multiColumnSearch<TValue>(
 	row: Row<TValue>,
 	columnId: string,
 	filterValue: string,
 ): boolean {
 	if (!filterValue) return true
+
 	const searchableColumns = ['title', 'content', 'annotation']
-	const term = filterValue.toLowerCase()
-	return searchableColumns.some((col) =>
-		String(row.getValue(col) ?? '')
-			.toLowerCase()
-			.includes(term),
-	)
+	const term = getCachedLowerCase(filterValue.trim())
+
+	if (!term) return true
+
+	return searchableColumns.some((col) => {
+		const value = row.getValue(col)
+		if (!value) return false
+
+		const cellValue = String(value)
+		return getCachedLowerCase(cellValue).includes(term)
+	})
 }
 
-/**
- * Filter function for genre.
- */
 export function genreFilter<TValue>(
 	row: Row<TValue>,
 	columnId: string,
@@ -31,9 +40,6 @@ export function genreFilter<TValue>(
 	return filterValue.includes(cell)
 }
 
-/**
- * Filter function for year ranges.
- */
 export function yearFilter<TValue>(
 	row: Row<TValue>,
 	columnId: string,
@@ -41,21 +47,17 @@ export function yearFilter<TValue>(
 ): boolean {
 	if (!filterValue?.length) return true
 	const year = Number(row.getValue(columnId))
-	for (const val of filterValue) {
+
+	return filterValue.some((val) => {
 		if (val === 'all') return true
 		if (val.includes('-')) {
 			const [from, to] = val.split('-').map(Number)
-			if (year >= from && year <= to) return true
-		} else if (year === Number(val)) {
-			return true
+			return year >= from && year <= to
 		}
-	}
-	return false
+		return year === Number(val)
+	})
 }
 
-/**
- * Filter function for tags.
- */
 export function tagsFilter<TValue>(
 	row: Row<TValue>,
 	columnId: string,
@@ -72,4 +74,8 @@ export const filterFns = {
 	genreFilter,
 	yearFilter,
 	tagsFilter,
+}
+
+export function clearSearchCache() {
+	searchCache.clear()
 }
