@@ -1,7 +1,7 @@
 /**
  * Get row height in pixels based on row height setting
  */
-export function getRowHeight(rowHeight: RowHeight): number {
+export function getRowHeight(rowHeight: RowHeight | undefined): number {
 	switch (rowHeight) {
 		case 'compact':
 			return 40
@@ -16,7 +16,7 @@ export function getRowHeight(rowHeight: RowHeight): number {
 /**
  * Get maximum number of lines for cell content based on row height
  */
-export function getMaxLines(rowHeight: RowHeight): number {
+export function getMaxLines(rowHeight: RowHeight | undefined): number {
 	switch (rowHeight) {
 		case 'compact':
 			return 1
@@ -31,7 +31,9 @@ export function getMaxLines(rowHeight: RowHeight): number {
 /**
  * Get maximum height for tag containers based on row height
  */
-export function getTagContainerMaxHeight(rowHeight: RowHeight): number {
+export function getMultiSelectMaxHeight(
+	rowHeight: RowHeight | undefined,
+): number {
 	switch (rowHeight) {
 		case 'compact':
 			return 24
@@ -115,15 +117,16 @@ export function generateOptions<T, K extends keyof T>(
  * Группирует года по интервалу и возвращает опции для фильтрации.
  * Если в интервале только один год, возвращается `{label: '2001', value: '2001'}`,
  * иначе `{label: '2000-2004', value: '2000-2004'}`.
- * @param years - массив уникальных лет
+ * @param optionsArray - массив опций с годами
  * @param interval - размер интервала (по умолчанию 5 лет)
  * @returns массив объектов { label, value }
  */
-export function groupYears(array: number[] | Option[], interval = 5): Option[] {
-	const years: number[] =
-		Array.isArray(array) && array.length > 0 && typeof array[0] === 'object'
-			? (array as Option[]).map((opt) => parseInt(opt.value, 10))
-			: (array as number[])
+export function groupYears(optionsArray: Option[], interval = 5): Option[] {
+	if (!optionsArray.length) return []
+
+	const years = optionsArray
+		.map((opt) => parseInt(opt.value, 10))
+		.filter((year) => !isNaN(year))
 
 	if (!years.length) return []
 

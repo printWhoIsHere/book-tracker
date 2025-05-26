@@ -1,20 +1,24 @@
 import { useRef } from 'react'
 
+import { cn } from '@renderer/lib/cn'
+import { getTagColor, useVisibleTags } from '@renderer/utils/tag'
+import { getMultiSelectMaxHeight } from '@renderer/utils/table'
+import { useWorkspaceSettings } from '@renderer/hooks/data/useWorkspace'
+
 import {
 	Popover,
 	PopoverTrigger,
 	PopoverContent,
 } from '@renderer/components/ui/popover'
 import { Badge } from '@renderer/components/ui/badge'
-import { cn } from '@renderer/lib/cn'
-import { useVisibleTags } from '@renderer/utils/tag'
 
 interface CellMultiSelectProps {
 	array: string[]
 }
 
 export function CellMultiSelect({ array }: CellMultiSelectProps) {
-	const rowHeight = 'compact'
+	const { settings } = useWorkspaceSettings()
+	const rowHeight = settings?.table.rowHeight || 'compact'
 	const containerRef = useRef<HTMLDivElement>(null)
 
 	const { visible, hidden } = useVisibleTags(array, containerRef, rowHeight)
@@ -23,7 +27,7 @@ export function CellMultiSelect({ array }: CellMultiSelectProps) {
 		return array.length === 0 ? null : <BadgeMore array={array} />
 	}
 
-	const maxHeight = rowHeight === 'comfortable' ? 64 : 24
+	const maxHeight = getMultiSelectMaxHeight(rowHeight)
 
 	return (
 		<div
@@ -31,12 +35,13 @@ export function CellMultiSelect({ array }: CellMultiSelectProps) {
 			className='flex flex-wrap items-center gap-1 overflow-hidden w-full'
 			style={{ maxHeight }}
 		>
-			{visible.map((tag) => (
+			{visible.map((item) => (
 				<Badge
-					key={tag}
+					key={item}
 					className='opacity-70 hover:opacity-100 transition-opacity duration-300 cursor-default flex-shrink-0'
+					style={{ backgroundColor: getTagColor(item, settings?.tags || []) }}
 				>
-					{tag}
+					{item}
 				</Badge>
 			))}
 			{hidden.length > 0 && <BadgeMore array={hidden} />}
@@ -51,6 +56,8 @@ function BadgeMore({
 	array: string[]
 	className?: string
 }) {
+	const { settings } = useWorkspaceSettings()
+
 	return (
 		<Popover>
 			<PopoverTrigger asChild>
@@ -67,7 +74,14 @@ function BadgeMore({
 			>
 				<div className='flex flex-col gap-1 justify-start'>
 					{array.map((item) => (
-						<Badge key={item}>{item}</Badge>
+						<Badge
+							key={item}
+							style={{
+								backgroundColor: getTagColor(item, settings?.tags || []),
+							}}
+						>
+							{item}
+						</Badge>
 					))}
 				</div>
 			</PopoverContent>

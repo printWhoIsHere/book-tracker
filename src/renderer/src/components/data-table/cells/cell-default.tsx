@@ -3,13 +3,16 @@ import { Cell, flexRender } from '@tanstack/react-table'
 import { cn } from '@renderer/lib/cn'
 
 import { TableCell } from '@renderer/components/ui/table'
+import { useWorkspaceSettings } from '@renderer/hooks/data/useWorkspace'
+import { getMaxLines } from '@renderer/utils/table'
 
 interface CellDefaultProps<TData> {
 	cell: Cell<TData, unknown>
 }
 
 export function CellDefault<TData>({ cell }: CellDefaultProps<TData>) {
-	const lines = 1
+	const { settings } = useWorkspaceSettings()
+	const lines = getMaxLines(settings?.table.rowHeight)
 
 	const multilineStyle =
 		lines > 1
@@ -24,7 +27,7 @@ export function CellDefault<TData>({ cell }: CellDefaultProps<TData>) {
 	return (
 		<TableCell
 			key={cell.id}
-			className={cn('p-0')}
+			className='p-0'
 			style={{
 				width: cell.column.getSize(),
 				minWidth: cell.column.columnDef.minSize ?? 60,
@@ -33,7 +36,7 @@ export function CellDefault<TData>({ cell }: CellDefaultProps<TData>) {
 		>
 			<div
 				className={cn(
-					'block align-middle max-w-full px-3 overflow-hidden',
+					'block align-middle max-w-full px-3',
 					lines === 1 ? 'whitespace-nowrap text-ellipsis' : 'whitespace-normal',
 				)}
 				style={multilineStyle}

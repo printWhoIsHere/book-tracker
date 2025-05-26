@@ -31,7 +31,7 @@ export function columnGlobalFilter<TValue>(
 				const v = row.getValue(colId)
 				cell = v == null ? '' : String(v)
 			}
-			return cell.toLowerCase().includes(term)
+			return getCachedLowerCase(cell).includes(term)
 		}),
 	)
 }

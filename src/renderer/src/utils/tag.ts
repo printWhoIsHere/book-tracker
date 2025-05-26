@@ -72,3 +72,17 @@ export function useVisibleTags(
 
 	return { visible, hidden }
 }
+
+const DEFAULT_TAG_COLOR = '#d3cfc7'
+/**
+ * Возвращает цвет для каждого тега на основе настроек.
+ * @param tagLabel Название тега
+ * @param settings Объект настроек пользователя
+ */
+export function getTagColor(
+	tagLabel: string,
+	settings: WorkspaceSettings['tags'],
+): string {
+	const found = settings.find((tag) => tag.label === tagLabel)
+	return found?.color ?? DEFAULT_TAG_COLOR
+}

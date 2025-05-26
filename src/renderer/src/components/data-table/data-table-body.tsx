@@ -13,7 +13,7 @@ interface DataTableBodyProps<TData> {
 	outerContainerRef: React.RefObject<HTMLDivElement>
 }
 
-export const DataTableBody = memo(function DataTableBody<TData>({
+export function DataTableBody<TData>({
 	table,
 	totalTableWidth,
 	rowHeight,
@@ -116,7 +116,7 @@ export const DataTableBody = memo(function DataTableBody<TData>({
 			</Table.Table>
 		</div>
 	)
-}) as <TData>(props: DataTableBodyProps<TData>) => JSX.Element
+}
 
 interface VirtualRowProps<TData> {
 	row: Row<TData>

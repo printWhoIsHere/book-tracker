@@ -29,16 +29,11 @@ export class WorkspaceService {
 		this.repo = WorkspaceRepository.getInstance()
 	}
 
-	/**
-	 * Создает новый workspace с валидацией и инициализацией
-	 */
 	async create(data: CreateWorkspace): Promise<WorkspaceRecord> {
 		logger.info(`Creating workspace: ${data.name}`)
 
-		// Валидация входных данных
 		const validated = CreateWorkspaceSchema.parse(data)
 
-		// Проверка на дублирование имени
 		const existing = this.repo.getAll()
 		if (
 			existing.some(
@@ -57,20 +52,15 @@ export class WorkspaceService {
 		}
 
 		try {
-			// Создание директории
 			await this.repo.createWorkspaceDir(workspace.id)
 
-			// Инициализация настроек
 			await this.repo.saveSettings(workspace.id, { ...defaultSettings })
 
-			// Создание базы данных
 			const dbPath = this.getPaths(workspace.id).relDatabasePath
 			await this.dbManager.create(dbPath, 'books')
 
-			// Сохранение в store
 			this.repo.save(workspace)
 
-			// Установка как активного, если это первый workspace
 			if (existing.length === 0) {
 				this.repo.setActiveId(workspace.id)
 				logger.info(`Set first workspace as active: ${workspace.id}`)
@@ -86,16 +76,10 @@ export class WorkspaceService {
 		}
 	}
 
-	/**
-	 * Возвращает список всех workspaces
-	 */
 	list(): WorkspaceRecord[] {
 		return this.repo.getAll()
 	}
 
-	/**
-	 * Возвращает активный workspace
-	 */
 	async getActive(): Promise<WorkspaceRecord | null> {
 		const activeId = this.repo.getActiveId()
 		if (!activeId) {
@@ -112,9 +96,6 @@ export class WorkspaceService {
 		}
 	}
 
-	/**
-	 * Устанавливает активный workspace
-	 */
 	async setActive(id: string | null): Promise<void> {
 		if (id === null) {
 			this.repo.setActiveId(null)
@@ -122,34 +103,24 @@ export class WorkspaceService {
 			return
 		}
 
-		// Валидация существования workspace
 		await this.repo.validateWorkspaceExists(id)
 
 		this.repo.setActiveId(id)
 		logger.info(`Active workspace set: ${id}`)
 	}
 
-	/**
-	 * Возвращает workspace по ID
-	 */
 	async getById(id: string): Promise<WorkspaceRecord> {
 		await this.repo.validateWorkspaceExists(id)
 		return this.repo.getById(id)!
 	}
 
-	/**
-	 * Обновляет workspace
-	 */
 	async update(id: string, updates: UpdateWorkspace): Promise<WorkspaceRecord> {
 		logger.info(`Updating workspace: ${id}`)
 
-		// Валидация входных данных
 		const validated = UpdateWorkspaceSchema.parse(updates)
 
-		// Проверка существования
 		const workspace = await this.getById(id)
 
-		// Проверка на дублирование имени (если имя меняется)
 		const newName = validated.name
 		if (newName && newName !== workspace.name) {
 			const existing = this.repo.getAll()
@@ -176,36 +147,25 @@ export class WorkspaceService {
 		return updated
 	}
 
-	/**
-	 * Удаляет workspace
-	 */
 	async delete(id: string): Promise<void> {
 		logger.info(`Deleting workspace: ${id}`)
 
-		// Проверка существования
 		await this.repo.validateWorkspaceExists(id)
 
-		// Проверка что это не последний workspace
 		const workspaces = this.repo.getAll()
 		if (workspaces.length === 1) {
 			throw new ValidationError('Cannot delete the last workspace')
 		}
 
 		try {
-			// Закрытие базы данных
 			const dbPath = this.getPaths(id).relDatabasePath
 			this.dbManager.close(dbPath)
 
-			// Удаление файлов
 			await this.repo.removeWorkspaceDir(id)
 
-			// Удаление из store
 			this.repo.remove(id)
-
-			// Очистка кеша
 			this.repo.clearSettingsCache(id)
 
-			// Если удаляемый workspace был активным, выбрать новый
 			const activeId = this.repo.getActiveId()
 			if (activeId === id) {
 				const remaining = this.repo.getAll()
@@ -221,17 +181,11 @@ export class WorkspaceService {
 		}
 	}
 
-	/**
-	 * Возвращает настройки workspace
-	 */
 	async getSettings(id: string): Promise<WorkspaceSettings> {
 		await this.repo.validateWorkspaceExists(id)
 		return await this.repo.getSettings(id)
 	}
 
-	/**
-	 * Обновляет настройки workspace
-	 */
 	async setSettings(
 		id: string,
 		patch: DeepPartial<WorkspaceSettings>,
@@ -240,29 +194,20 @@ export class WorkspaceService {
 
 		await this.repo.validateWorkspaceExists(id)
 
-		// Получаем текущие настройки
 		const currentSettings = await this.repo.getSettings(id)
 
-		// Глубокое слияние настроек
 		const updatedSettings = this.deepMerge(currentSettings, patch)
 
-		// Сохраняем
 		await this.repo.saveSettings(id, updatedSettings)
 
 		logger.info(`Settings updated for workspace: ${id}`)
 		return updatedSettings
 	}
 
-	/**
-	 * Возвращает пути к файлам workspace
-	 */
 	getPaths(id: string): WorkspacePaths {
 		return this.repo.getPaths(id)
 	}
 
-	/**
-	 * Возвращает статистику workspace
-	 */
 	async getStats(id: string): Promise<{
 		workspace: WorkspaceRecord
 		files: {
@@ -283,7 +228,6 @@ export class WorkspaceService {
 
 		const result: any = { workspace, files }
 
-		// Получаем статистику БД если она существует
 		if (files.hasDatabase) {
 			try {
 				const dbPath = this.getPaths(id).relDatabasePath
@@ -296,9 +240,6 @@ export class WorkspaceService {
 		return result
 	}
 
-	/**
-	 * Экспортирует данные workspace
-	 */
 	async export(id: string): Promise<{
 		workspace: WorkspaceRecord
 		settings: WorkspaceSettings
@@ -311,7 +252,6 @@ export class WorkspaceService {
 
 		const result: any = { workspace, settings }
 
-		// Экспортируем данные БД если она существует
 		try {
 			const dbPath = this.getPaths(id).relDatabasePath
 			result.data = await this.dbManager.exportData(dbPath)
@@ -326,13 +266,9 @@ export class WorkspaceService {
 
 	private async rollbackWorkspaceCreation(id: string): Promise<void> {
 		try {
-			// Удаляем из store
 			this.repo.remove(id)
-
-			// Удаляем директорию
 			await this.repo.removeWorkspaceDir(id)
 
-			// Закрываем БД если была открyta
 			try {
 				const dbPath = this.getPaths(id).relDatabasePath
 				this.dbManager.close(dbPath)

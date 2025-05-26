@@ -41,12 +41,17 @@ handleIpc(
 handleIpc(
 	'workspace:update',
 	z.object({
-		id: z.string().uuid(),
+		id: z.string().uuid().optional(),
 		updates: UpdateWorkspaceSchema,
 	}),
 	async (_, data) => {
-		logger.info(`Updating workspace via IPC: ${data.id}`)
-		return await svc.update(data.id, data.updates)
+		const workspaceId = data.id || (await svc.getActive())?.id
+		if (!workspaceId) {
+			throw new Error('No workspace ID provided and no active workspace')
+		}
+
+		logger.info(`Updating workspace via IPC: ${workspaceId}`)
+		return await svc.update(workspaceId, data.updates)
 	},
 )
 
@@ -64,34 +69,89 @@ handleIpc(
 
 handleIpc(
 	'workspace:get-settings',
-	z.object({
-		id: z.string().uuid(),
-	}),
+	z
+		.object({
+			id: z.string().uuid().optional(),
+		})
+		.optional(),
 	async (_, data) => {
-		logger.debug(`Getting workspace settings via IPC: ${data.id}`)
-		return await svc.getSettings(data.id)
+		const workspaceId = data?.id || (await svc.getActive())?.id
+		if (!workspaceId) {
+			throw new Error('No workspace ID provided and no active workspace')
+		}
+
+		logger.debug(`Getting workspace settings via IPC: ${workspaceId}`)
+		return await svc.getSettings(workspaceId)
 	},
 )
 
 handleIpc(
 	'workspace:set-settings',
 	z.object({
-		id: z.string().uuid(),
+		id: z.string().uuid().optional(),
 		settings: WorkspaceSettingsSchema.partial(),
 	}),
 	async (_, data) => {
-		logger.info(`Updating workspace settings via IPC: ${data.id}`)
-		return await svc.setSettings(data.id, data.settings)
+		const workspaceId = data.id || (await svc.getActive())?.id
+		if (!workspaceId) {
+			throw new Error('No workspace ID provided and no active workspace')
+		}
+
+		logger.info(`Updating workspace settings via IPC: ${workspaceId}`)
+		return await svc.setSettings(workspaceId, data.settings)
 	},
 )
 
 handleIpc(
 	'workspace:get-stats',
-	z.object({
-		id: z.string().uuid(),
-	}),
+	z
+		.object({
+			id: z.string().uuid().optional(),
+		})
+		.optional(),
 	async (_, data) => {
-		logger.debug(`Getting workspace stats via IPC: ${data.id}`)
-		return await svc.getStats(data.id)
+		const workspaceId = data?.id || (await svc.getActive())?.id
+		if (!workspaceId) {
+			throw new Error('No workspace ID provided and no active workspace')
+		}
+
+		logger.debug(`Getting workspace stats via IPC: ${workspaceId}`)
+		return await svc.getStats(workspaceId)
+	},
+)
+
+handleIpc(
+	'workspace:get-paths',
+	z
+		.object({
+			id: z.string().uuid().optional(),
+		})
+		.optional(),
+	async (_, data) => {
+		const workspaceId = data?.id || (await svc.getActive())?.id
+		if (!workspaceId) {
+			throw new Error('No workspace ID provided and no active workspace')
+		}
+
+		logger.debug(`Getting workspace paths via IPC: ${workspaceId}`)
+		return svc.getPaths(workspaceId)
+	},
+)
+
+handleIpc(
+	'workspace:export',
+	z
+		.object({
+			id: z.string().uuid().optional(),
+		})
+		.optional(),
+	async (_, data) => {
+		const workspaceId = data?.id || (await svc.getActive())?.id
+		if (!workspaceId) {
+			throw new Error('No workspace ID provided and no active workspace')
+		}
+
+		logger.info(`Exporting workspace via IPC: ${workspaceId}`)
+		return await svc.export(workspaceId)
 	},
 )

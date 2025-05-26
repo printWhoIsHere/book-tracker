@@ -42,18 +42,18 @@ export function DataTableFooter<TData>({
 					value={String(table.getState().pagination.pageSize)}
 					onValueChange={(value) => table.setPageSize(Number(value))}
 				>
-					<SelectTrigger className='w-auto'>
+					<span className='text-muted-foreground'>Rows per page</span>
+					<SelectTrigger className='w-[120px]'>
 						<SelectValue placeholder='Size' />
 					</SelectTrigger>
 					<SelectContent>
 						{[10, 20, 50, 100, 250, 500].map((size) => (
 							<SelectItem key={size} value={String(size)}>
-								{size} / page
+								{size}
 							</SelectItem>
 						))}
 					</SelectContent>
 				</Select>
-
 				<DataTablePagination table={table} />
 			</div>
 		</div>

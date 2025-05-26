@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect } from 'react'
-import { RowSelectionState, Table } from '@tanstack/react-table'
+import { Table } from '@tanstack/react-table'
 import { RotateCcw } from 'lucide-react'
 
 import { cn } from '@renderer/lib/cn'
@@ -61,7 +61,7 @@ export function DataTableToolbar<TData>({
 	return (
 		<div
 			className={cn(
-				'flex w-full items-center justify-between space-x-2 overflow-auto p-1',
+				'flex w-full items-center justify-between space-x-2 overflow-auto mb-1',
 				className,
 			)}
 			{...props}
@@ -93,7 +93,7 @@ export function DataTableToolbar<TData>({
 						className='h-8 px-2 lg:px-3'
 						onClick={handleReset}
 					>
-						<RotateCcw className='ml-2 size-4' aria-hidden='true' />
+						<RotateCcw className='size-4' aria-hidden='true' />
 						Reset
 					</Button>
 				)}

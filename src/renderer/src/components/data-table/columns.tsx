@@ -104,7 +104,7 @@ export const columns = [
 		),
 		enableColumnFilter: false,
 		enableGlobalFilter: true,
-		minSize: 160,
+		minSize: 164,
 		filterFn: 'includesString',
 	}),
 
@@ -113,9 +113,9 @@ export const columns = [
 		cell: (info) => info.getValue() || '-',
 		filterFn: filterFns.columnYearFilter,
 		enableGlobalFilter: false,
-		maxSize: 60,
-		minSize: 60,
-		size: 60,
+		maxSize: 64,
+		minSize: 64,
+		size: 64,
 	}),
 
 	columnHelper.accessor('tags', {
@@ -123,7 +123,7 @@ export const columns = [
 		cell: ({ row }) => <Cell.CellMultiSelect array={row.original.tags || []} />,
 		filterFn: filterFns.columnTagsFilter,
 		enableGlobalFilter: false,
-		minSize: 160,
+		minSize: 164,
 	}),
 
 	columnHelper.display({

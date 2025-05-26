@@ -3,16 +3,20 @@ import { Header } from '@renderer/components/layout/header'
 import { Sidebar } from '@renderer/components/layout/sidebar'
 import { DataTable } from '@renderer/components/data-table'
 
-import { useWorkspace } from '@renderer/hooks/data/useWorkspace'
+import {
+	useWorkspace,
+	useWorkspaceSettings,
+} from '@renderer/hooks/data/useWorkspace'
 import { useBook } from '@renderer/hooks/data/useBook'
 
 function App(): JSX.Element {
 	const { workspaces, isLoading: isLoadingWorkspace } = useWorkspace()
+	const { settings, isLoading: isLoadingSettings } = useWorkspaceSettings()
 	const { books, isLoading: isLoadingBooks } = useBook()
 
-	if (isLoadingWorkspace || isLoadingBooks) {
+	if (isLoadingWorkspace || isLoadingSettings || isLoadingBooks) {
 		return (
-			<div className='min-h-screen w-full flex justify-center items-center text-foreground'>
+			<div className='min-h-screen w-full flex justify-center items-center'>
 				<div className='text-lg'>Loading...</div>
 			</div>
 		)

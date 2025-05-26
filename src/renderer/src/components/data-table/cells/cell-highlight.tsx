@@ -12,65 +12,72 @@ export function CellHighlight({ value, searchTerm }: CellHighlightProps) {
 		if (!value || !searchTerm) return value || ''
 
 		const text = String(value)
-		const rawTerms = searchTerm.toLowerCase().trim().split(/\s+/)
-		const terms = rawTerms.filter(Boolean)
+		const lowerText = text.toLowerCase()
+		const query = searchTerm.toLowerCase().trim()
 
-		if (!terms.length) return text
-
-		const cacheKey = `${text}:${terms.join('|')}`
-
+		const cacheKey = `${text}::phrase::${query}`
 		if (highlightCache.has(cacheKey)) {
-			return highlightCache.get(cacheKey)
+			return highlightCache.get(cacheKey)!
 		}
 
-		const lowerText = text.toLowerCase()
+		const idx = lowerText.indexOf(query)
+		if (idx !== -1) {
+			const before = text.slice(0, idx)
+			const match = text.slice(idx, idx + query.length)
+			const after = text.slice(idx + query.length)
 
-		const hasMatch = terms.some((term) => lowerText.includes(term))
+			const result = (
+				<span>
+					{before}
+					<mark className='bg-yellow-200/30 text-foreground rounded-sm px-0.5'>
+						{match}
+					</mark>
+					{after}
+				</span>
+			)
 
-		if (!hasMatch) {
+			highlightCache.set(cacheKey, result)
+			return result
+		}
+
+		const rawTerms = query.split(/\s+/).filter(Boolean)
+		if (!rawTerms.length) {
 			highlightCache.set(cacheKey, text)
 			return text
 		}
 
-		const escapedTerms = terms.map((term) =>
-			term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
+		const escaped = rawTerms.map((t) =>
+			t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
 		)
-		const regex = new RegExp(`(${escapedTerms.join('|')})`, 'gi')
-
+		const regex = new RegExp(`(${escaped.join('|')})`, 'gi')
 		const parts: (string | React.ReactElement)[] = []
 		let lastIndex = 0
-		let match: RegExpExecArray | null
+		let m: RegExpExecArray | null
 
-		while ((match = regex.exec(text)) !== null) {
-			if (match.index > lastIndex) {
-				parts.push(text.substring(lastIndex, match.index))
+		while ((m = regex.exec(text))) {
+			if (m.index > lastIndex) {
+				parts.push(text.slice(lastIndex, m.index))
 			}
-
 			parts.push(
 				<mark
-					key={`${match.index}-${match[0]}`}
+					key={`${m.index}-${m[0]}`}
 					className='bg-yellow-200/30 text-foreground rounded-sm px-0.5'
 				>
-					{match[0]}
+					{m[0]}
 				</mark>,
 			)
-
 			lastIndex = regex.lastIndex
-
-			if (match[0] === '') {
-				regex.lastIndex++
-			}
 		}
-
 		if (lastIndex < text.length) {
-			parts.push(text.substring(lastIndex))
+			parts.push(text.slice(lastIndex))
 		}
 
 		const result = parts.length > 1 ? <span>{parts}</span> : text
 
 		if (highlightCache.size > 1000) {
-			const keysToDelete = Array.from(highlightCache.keys()).slice(0, 100)
-			keysToDelete.forEach((key) => highlightCache.delete(key))
+			Array.from(highlightCache.keys())
+				.slice(0, 100)
+				.forEach((k) => highlightCache.delete(k))
 		}
 
 		highlightCache.set(cacheKey, result)

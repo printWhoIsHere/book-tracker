@@ -46,13 +46,8 @@ export function CellActions<TData>({ row }: CellActionsProps<TData>) {
 
 	return (
 		<DropdownMenu>
-			<DropdownMenuTrigger asChild className='w-full'>
-				<Button
-					variant='ghost'
-					size='icon'
-					aria-label='Open actions menu'
-					title='Actions'
-				>
+			<DropdownMenuTrigger asChild>
+				<Button variant='ghost' aria-label='Open actions menu' title='Actions'>
 					<MoreHorizontal className='w-4 h-4' />
 				</Button>
 			</DropdownMenuTrigger>

@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import {
 	useReactTable,
 	getCoreRowModel,
@@ -11,11 +11,16 @@ import {
 	RowSelectionState,
 } from '@tanstack/react-table'
 
-import { columns } from '@renderer/components/data-table/columns'
+import { useWorkspaceSettings } from '@renderer/hooks/data/useWorkspace'
 import { filterFns } from '@renderer/utils/filters'
-import { generateOptions, groupYears } from '@renderer/utils/table'
+import {
+	generateOptions,
+	getRowHeight,
+	groupYears,
+} from '@renderer/utils/table'
 import type { BookRecord } from '@renderer/types/book'
 
+import { columns } from '@renderer/components/data-table/columns'
 import { DataTableToolbar } from '@renderer/components/data-table/data-table-toolbar'
 import { DataTableContainer } from '@renderer/components/data-table/data-table-container'
 import { DataTableBody } from '@renderer/components/data-table/data-table-body'
@@ -27,6 +32,8 @@ interface DataTableProps {
 }
 
 export function DataTable({ data }: DataTableProps) {
+	const { settings } = useWorkspaceSettings()
+
 	const [sorting, setSorting] = useState<SortingState>([])
 	const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
 	const [globalFilter, setGlobalFilter] = useState<string>('')
@@ -36,6 +43,10 @@ export function DataTable({ data }: DataTableProps) {
 	})
 	const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
 
+	const rowHeight = useMemo(() => {
+		return getRowHeight(settings?.table.rowHeight)
+	}, [settings?.table.rowHeight])
+
 	const filterFields = React.useMemo<DataTableFilterField<BookRecord>[]>(() => {
 		if (data.length === 0) return []
 
@@ -43,7 +54,7 @@ export function DataTable({ data }: DataTableProps) {
 		const years = new Set<number>()
 		const tags = new Set<string>()
 
-		data.forEach((book) => {
+		data.forEach((book: BookRecord) => {
 			book.genre && genres.add(book.genre)
 			book.year && years.add(book.year)
 			book.tags?.forEach((tag) => tags.add(tag))
@@ -51,17 +62,17 @@ export function DataTable({ data }: DataTableProps) {
 
 		return [
 			{
-				label: 'Genre',
+				label: 'Жанр',
 				value: 'genre',
 				options: generateOptions(data, 'genre'),
 			},
 			{
-				label: 'Year',
+				label: 'Год',
 				value: 'year',
 				options: groupYears(generateOptions(data, 'year')),
 			},
 			{
-				label: 'Tags',
+				label: 'Ярлык',
 				value: 'tags',
 				options: generateOptions(data, 'tags'),
 			},
@@ -115,10 +126,10 @@ export function DataTable({ data }: DataTableProps) {
 				outerContainerRef={outerContainerRef}
 			>
 				<DataTableHeader table={table} totalTableWidth={totalTableWidth} />
-				<DataTableBody<BookRecord>
+				<DataTableBody
 					table={table}
 					totalTableWidth={totalTableWidth}
-					rowHeight={64}
+					rowHeight={rowHeight}
 					tableContainerRef={tableContainerRef}
 					outerContainerRef={outerContainerRef}
 				/>
