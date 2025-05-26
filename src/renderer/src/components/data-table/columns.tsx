@@ -1,7 +1,7 @@
 import { createColumnHelper } from '@tanstack/react-table'
 
 import { formatFullName } from '@renderer/utils/table'
-import { filterFns, multiColumnSearch } from '@renderer/utils/filters'
+import { filterFns } from '@renderer/utils/filters'
 import type { BookRecord } from '@renderer/types/book'
 
 import * as Header from '@renderer/components/data-table/headers'

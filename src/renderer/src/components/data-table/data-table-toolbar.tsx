@@ -1,26 +1,36 @@
 import { useMemo, useState, useEffect } from 'react'
+import { Table } from '@tanstack/react-table'
 import { RotateCcw } from 'lucide-react'
 
 import { cn } from '@renderer/lib/cn'
 import { useDebounce } from '@renderer/hooks/useDebounce'
-import { useDataTable } from '@renderer/providers/data-table-provider'
+import type { BookRecord } from '@renderer/types/book'
 
-import { ColumnFilter } from '@renderer/components/data-table/filters'
+import {
+	ColumnFilter,
+	GlobalSearch,
+} from '@renderer/components/data-table/filters'
 import { Button } from '@renderer/components/ui/button'
-import { Input } from '@renderer/components/ui/input'
 
-interface DataTableToolbarProps extends React.HTMLAttributes<HTMLDivElement> {
+interface DataTableToolbarProps<TData>
+	extends React.HTMLAttributes<HTMLDivElement> {
+	table: Table<TData>
+	globalFilter: string
+	setGlobalFilter: (filter: string) => void
+	filterFields: DataTableFilterField<BookRecord>[]
 	reverse?: boolean
 }
 
-export function DataTableToolbar({
+export function DataTableToolbar<TData>({
+	table,
+	globalFilter,
+	setGlobalFilter,
+	filterFields,
 	children,
 	className,
 	reverse,
 	...props
-}: DataTableToolbarProps) {
-	const { table, globalFilter, setGlobalFilter, filterFields } = useDataTable()
-
+}: DataTableToolbarProps<TData>) {
 	const [searchValue, setSearchValue] = useState(globalFilter)
 	const debouncedSearchValue = useDebounce(searchValue, 300)
 
@@ -65,29 +75,25 @@ export function DataTableToolbar({
 				)}
 			>
 				{globalField && (
-					// TODO: Вынести в GlobalSearch.tsx (переписать)
-					<Input
-						type='text'
+					<GlobalSearch
 						value={searchValue}
-						onChange={(e) => setSearchValue(e.target.value)}
+						onChange={setSearchValue}
 						placeholder={globalField.placeholder}
 					/>
 				)}
 
-				{filterableFields.map(
-					// TODO: Типизировапть
-					(column) =>
-						table.getColumn(column.value ? String(column.value) : '') && (
-							<ColumnFilter
-								key={String(column.value)}
-								column={table.getColumn(
-									column.value ? String(column.value) : '',
-								)}
-								title={column.label}
-								options={column.options ?? []}
-							/>
-						),
-				)}
+				{filterableFields.map((column) => {
+					const tableColumn = table.getColumn(String(column.value))
+					return tableColumn ? (
+						<ColumnFilter
+							key={String(column.value)}
+							column={tableColumn}
+							title={column.label}
+							options={column.options ?? []}
+						/>
+					) : null
+				})}
+
 				{shouldShowReset && (
 					<Button
 						aria-label='Reset filters and sorting'

@@ -5,7 +5,6 @@ import { DataTable } from '@renderer/components/data-table'
 
 import { useWorkspace } from '@renderer/hooks/data/useWorkspace'
 import { useBook } from '@renderer/hooks/data/useBook'
-import { DataTableProvider } from '@renderer/providers/data-table-provider'
 
 function App(): JSX.Element {
 	const { workspaces, isLoading: isLoadingWorkspace } = useWorkspace()
@@ -31,15 +30,13 @@ function App(): JSX.Element {
 
 	return (
 		<div className='w-full h-screen flex bg-primary-foreground text-foreground overflow-hidden'>
-			<DataTableProvider data={books}>
-				<Sidebar />
-				<div className='flex flex-col flex-1 bg-background overflow-hidden min-h-0 ms-0 m-2 rounded-xl'>
-					<Header />
-					<main className='flex flex-col gap-4 flex-1 p-1 md:p-4 overflow-hidden min-h-0'>
-						<DataTable />
-					</main>
-				</div>
-			</DataTableProvider>
+			<Sidebar />
+			<div className='flex flex-col flex-1 bg-background overflow-hidden min-h-0 ms-0 m-2 rounded-xl'>
+				<Header />
+				<main className='flex flex-col gap-4 flex-1 p-1 md:p-4 overflow-hidden min-h-0'>
+					<DataTable data={books} />
+				</main>
+			</div>
 		</div>
 	)
 }

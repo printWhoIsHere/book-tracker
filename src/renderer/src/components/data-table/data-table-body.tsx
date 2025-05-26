@@ -1,12 +1,12 @@
 import { useCallback, useMemo, memo } from 'react'
-import type { Table as TableProps } from '@tanstack/react-table'
+import type { Table as TableType, Row, Cell } from '@tanstack/react-table'
 import { useVirtualizer } from '@tanstack/react-virtual'
 
 import * as Table from '@renderer/components/ui/table'
 import { CellDefault } from '@renderer/components/data-table/cells'
 
 interface DataTableBodyProps<TData> {
-	table: TableProps<TData>
+	table: TableType<TData>
 	totalTableWidth: number
 	rowHeight: number
 	tableContainerRef: React.RefObject<HTMLDivElement>
@@ -101,7 +101,7 @@ export const DataTableBody = memo(function DataTableBody<TData>({
 					{virtualRows.map((virtualItem) => {
 						const row = rows[virtualItem.index]
 						return (
-							<VirtualRow
+							<VirtualRow<TData>
 								key={virtualItem.key}
 								row={row}
 								virtualItem={virtualItem}
@@ -116,26 +116,28 @@ export const DataTableBody = memo(function DataTableBody<TData>({
 			</Table.Table>
 		</div>
 	)
-})
+}) as <TData>(props: DataTableBodyProps<TData>) => JSX.Element
 
-const VirtualRow = memo(function VirtualRow({
+interface VirtualRowProps<TData> {
+	row: Row<TData>
+	virtualItem: any
+	style: React.CSSProperties
+}
+
+const VirtualRow = memo(function VirtualRow<TData>({
 	row,
 	virtualItem,
 	style,
-}: {
-	row: any
-	virtualItem: any
-	style: React.CSSProperties
-}) {
+}: VirtualRowProps<TData>) {
 	return (
 		<Table.TableRow
 			className='absolute top-0 left-0 flex w-full items-center hover:bg-muted/50 transition-colors'
 			style={style}
 			data-state={row.getIsSelected() && 'selected'}
 		>
-			{row.getVisibleCells().map((cell: any) => (
+			{row.getVisibleCells().map((cell: Cell<TData, unknown>) => (
 				<CellDefault key={cell.id} cell={cell} />
 			))}
 		</Table.TableRow>
 	)
-})
+}) as <TData>(props: VirtualRowProps<TData>) => JSX.Element

@@ -1,4 +1,3 @@
-import { DataTableToolbar } from '@renderer/components/data-table/data-table-toolbar'
 import { SidebarTrigger } from '@renderer/components/layout/sidebar/sidebar-trigger'
 import { Separator } from '@renderer/components/ui/separator'
 
@@ -9,9 +8,6 @@ export function Header() {
 				<SidebarTrigger className='h-8 w-8' />
 				<Separator orientation='vertical' className='mx-2 h-4' />
 				<h1 className='text-base font-medium text-foreground'>Data Table</h1>
-			</div>
-			<div className='flex gap-2 px-4'>
-				<DataTableToolbar reverse />
 			</div>
 		</header>
 	)

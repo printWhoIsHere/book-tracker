@@ -2,7 +2,6 @@ import {
 	Plus,
 	Upload,
 	Download,
-	Trash,
 	Sliders,
 	Table,
 	RotateCcw,
@@ -46,23 +45,6 @@ export const sidebarConfig: SidebarGroup[] = [
 					component: Modal.ImportModal,
 					title: 'Импорт данных',
 					description: 'Загрузите данные из Excel файла',
-				},
-			},
-			{
-				id: 'delete-selected',
-				title: 'Удалить выбранные',
-				icon: Trash,
-				variant: 'destructive',
-				type: 'action',
-				action: {
-					key: 'deleteSelected',
-					requiresSelection: true,
-				},
-				visible: () => {
-					// Здесь должна быть логика проверки выбранных строк
-					// const { selectedRows } = useTableContext() - не можем использовать хук здесь
-					// Поэтому перенесем в компонент или используем другой подход
-					return true
 				},
 			},
 		],

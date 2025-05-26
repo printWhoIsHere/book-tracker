@@ -28,7 +28,7 @@ export function WorkspaceDropdownItem({
 				isActive && 'bg-sidebar-accent text-sidebar-accent-foreground',
 			)}
 		>
-			<div className='flex items-center'>
+			<div className='flex items-center gap-2'>
 				<WorkspaceAvatar name={workspace.name} />
 
 				<div className='flex-1'>

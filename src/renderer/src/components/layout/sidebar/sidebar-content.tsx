@@ -1,5 +1,4 @@
 import { useSidebar } from '@renderer/providers/sidebar-provider'
-import { useSidebarActions } from '@renderer/hooks/useSidebarActions'
 import { sidebarConfig } from './config'
 import { SidebarGroup } from './sidebar-group'
 import { useModal } from '@renderer/hooks/useModal'
@@ -7,7 +6,6 @@ import { useModal } from '@renderer/hooks/useModal'
 export function SidebarContent() {
 	const { state } = useSidebar()
 	const { openModal } = useModal()
-	const { actions } = useSidebarActions()
 
 	const isCollapsed = state === 'collapsed'
 
@@ -32,8 +30,6 @@ export function SidebarContent() {
 				if (item.action) {
 					if (item.action.handler) {
 						await item.action.handler()
-					} else if (item.action.key && actions[item.action.key]) {
-						await actions[item.action.key]()
 					}
 				}
 				break

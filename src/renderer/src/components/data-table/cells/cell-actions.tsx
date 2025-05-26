@@ -3,6 +3,7 @@ import { BookOpenText, MoreHorizontal, PenSquare, Trash } from 'lucide-react'
 
 import { useBook } from '@renderer/hooks/data/useBook'
 import { useModal } from '@renderer/hooks/useModal'
+import type { BookRecord } from '@renderer/types/book'
 
 import {
 	DropdownMenu,
@@ -20,6 +21,8 @@ interface CellActionsProps<TData> {
 export function CellActions<TData>({ row }: CellActionsProps<TData>) {
 	const { deleteBook } = useBook()
 	const { openModal } = useModal()
+
+	const bookData = row.original as BookRecord
 
 	const handleEdit = () => {
 		// Открыть модал редактирования

@@ -1,32 +1,25 @@
-import { useState } from 'react'
-import { Column, Table } from '@tanstack/react-table'
 import { Search, X } from 'lucide-react'
 
 import { Input } from '@renderer/components/ui/input'
 import { Button } from '@renderer/components/ui/button'
 
-interface ColumnSearchProps<TData, TValue> {
-	column?: Column<TData, TValue>
+interface GlobalSearchProps {
+	value: string
+	onChange: (value: string) => void
 	placeholder?: string
 }
 
-export function ColumnSearch<TData, TValue>({
-	column,
+export function GlobalSearch({
+	value,
+	onChange,
 	placeholder = 'Search...',
-}: ColumnSearchProps<TData, TValue>) {
-	const [value, setValue] = useState((column?.getFilterValue() as string) ?? '')
-
+}: GlobalSearchProps) {
 	const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-		const newValue = e.target.value
-		setValue(newValue)
-
-		// Устанавливаем фильтр с кастомной функцией для мульти-поиска
-		column?.setFilterValue(newValue || undefined)
+		onChange(e.target.value)
 	}
 
 	const handleClear = () => {
-		setValue('')
-		column?.setFilterValue(undefined)
+		onChange('')
 	}
 
 	return (

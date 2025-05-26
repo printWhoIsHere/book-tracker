@@ -16,10 +16,8 @@ export function CellHighlight({ value, searchTerm }: CellHighlightProps) {
 
 		if (!term) return text
 
-		// Создаем ключ для кэша
 		const cacheKey = `${text}:${term}`
 
-		// Проверяем кэш
 		if (highlightCache.has(cacheKey)) {
 			return highlightCache.get(cacheKey)
 		}
@@ -31,7 +29,7 @@ export function CellHighlight({ value, searchTerm }: CellHighlightProps) {
 			return text
 		}
 
-		const parts = []
+		const parts: React.ReactNode[] = []
 		let lastIndex = 0
 		let index = lowerText.indexOf(term)
 
@@ -62,7 +60,9 @@ export function CellHighlight({ value, searchTerm }: CellHighlightProps) {
 		// Ограничиваем размер кэша
 		if (highlightCache.size > 1000) {
 			const firstKey = highlightCache.keys().next().value
-			highlightCache.delete(firstKey)
+			if (firstKey) {
+				highlightCache.delete(firstKey)
+			}
 		}
 
 		highlightCache.set(cacheKey, result)
