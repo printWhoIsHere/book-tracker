@@ -12,44 +12,31 @@ function getCachedLowerCase(str: string): string {
 	return searchCache.get(str)!
 }
 
-export function multiColumnSearch<TValue>(
+export function columnGlobalFilter<TValue>(
 	row: Row<TValue>,
 	columnId: string,
 	filterValue: string,
 ): boolean {
 	if (!filterValue) return true
-
-	const searchableColumns = ['title', 'content', 'annotation', 'author']
 	const terms = filterValue.toLowerCase().trim().split(/\s+/).filter(Boolean)
-
 	if (!terms.length) return true
 
 	return terms.every((term) =>
-		searchableColumns.some((col) => {
-			let value: any
-
-			if (col === 'author') {
-				const rowData = row.original as any
-				if (rowData.lastName || rowData.firstName || rowData.middleName) {
-					value = [rowData.firstName, rowData.middleName, rowData.lastName]
-						.filter(Boolean)
-						.join(' ')
-				} else {
-					return false
-				}
+		['title', 'content', 'annotation', 'author'].some((colId) => {
+			let cell: string | undefined
+			if (colId === 'author') {
+				const d = row.original as any
+				cell = [d.firstName, d.middleName, d.lastName].filter(Boolean).join(' ')
 			} else {
-				value = row.getValue(col)
+				const v = row.getValue(colId)
+				cell = v == null ? '' : String(v)
 			}
-
-			if (!value) return false
-
-			const cellValue = String(value)
-			return getCachedLowerCase(cellValue).includes(term)
+			return cell.toLowerCase().includes(term)
 		}),
 	)
 }
 
-export function genreFilter<TValue>(
+export function columnGenreFilter<TValue>(
 	row: Row<TValue>,
 	columnId: string,
 	filterValue: string[],
@@ -60,7 +47,7 @@ export function genreFilter<TValue>(
 	return filterValue.includes(cell)
 }
 
-export function yearFilter<TValue>(
+export function columnYearFilter<TValue>(
 	row: Row<TValue>,
 	columnId: string,
 	filterValue: string[],
@@ -85,7 +72,7 @@ export function yearFilter<TValue>(
 }
 
 // Фильтр по тегам (поддержка множественного выбора)
-export function tagsFilter<TValue>(
+export function columnTagsFilter<TValue>(
 	row: Row<TValue>,
 	columnId: string,
 	filterValue: string[],
@@ -104,7 +91,7 @@ export function tagsFilter<TValue>(
 }
 
 // Фильтр по тегам (частичное совпадение)
-export function tagsSearchFilter<TValue>(
+export function columnTagsSearchFilter<TValue>(
 	row: Row<TValue>,
 	columnId: string,
 	filterValue: string,
@@ -123,11 +110,11 @@ export function tagsSearchFilter<TValue>(
 }
 
 export const filterFns = {
-	multiColumnSearch,
-	genreFilter,
-	yearFilter,
-	tagsFilter,
-	tagsSearchFilter,
+	columnGlobalFilter,
+	columnGenreFilter,
+	columnYearFilter,
+	columnTagsFilter,
+	columnTagsSearchFilter,
 }
 
 export function clearSearchCache() {

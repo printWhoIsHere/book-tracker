@@ -13,7 +13,7 @@ interface Option {
 
 interface DataTableFilterField<TData> {
 	label: string
-	value: keyof TData | 'search'
+	value: keyof TData
 	placeholder?: string
 	options?: Option[]
 }

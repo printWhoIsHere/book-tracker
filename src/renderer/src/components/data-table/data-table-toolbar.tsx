@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect } from 'react'
-import { Table } from '@tanstack/react-table'
+import { RowSelectionState, Table } from '@tanstack/react-table'
 import { RotateCcw } from 'lucide-react'
 
 import { cn } from '@renderer/lib/cn'
@@ -40,22 +40,20 @@ export function DataTableToolbar<TData>({
 
 	const isFiltered = table.getState().columnFilters.length > 0
 	const isSorted = table.getState().sorting.length > 0
+	const isSelected = table.getSelectedRowModel().rows.length > 0
 
-	const { globalField, filterableFields } = useMemo(() => {
-		const gf = filterFields.find((f) => f.value === 'search')
+	const { filterableFields } = useMemo(() => {
 		return {
-			globalField: gf,
-			filterableFields: filterFields.filter(
-				(f) => f.options && f.value !== 'search',
-			),
+			filterableFields: filterFields.filter((f) => f.options),
 		}
 	}, [filterFields])
 
-	const shouldShowReset = isFiltered || isSorted || globalFilter
+	const shouldShowReset = isFiltered || isSorted || globalFilter || isSelected
 
 	const handleReset = () => {
 		table.resetColumnFilters()
 		table.resetSorting()
+		table.resetRowSelection()
 		setGlobalFilter('')
 		setSearchValue('')
 	}
@@ -74,9 +72,7 @@ export function DataTableToolbar<TData>({
 					reverse && 'flex-row-reverse',
 				)}
 			>
-				{globalField && (
-					<GlobalSearch value={searchValue} onChange={setSearchValue} />
-				)}
+				<GlobalSearch value={searchValue} onChange={setSearchValue} />
 
 				{filterableFields.map((column) => {
 					const tableColumn = table.getColumn(String(column.value))

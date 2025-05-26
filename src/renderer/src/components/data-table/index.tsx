@@ -13,13 +13,14 @@ import {
 
 import { columns } from '@renderer/components/data-table/columns'
 import { filterFns } from '@renderer/utils/filters'
+import { generateOptions, groupYears } from '@renderer/utils/table'
 import type { BookRecord } from '@renderer/types/book'
 
 import { DataTableToolbar } from '@renderer/components/data-table/data-table-toolbar'
 import { DataTableContainer } from '@renderer/components/data-table/data-table-container'
 import { DataTableBody } from '@renderer/components/data-table/data-table-body'
 import { DataTableHeader } from '@renderer/components/data-table/data-table-header'
-import { DataTablePagination } from '@renderer/components/data-table/data-table-pagination'
+import { DataTableFooter } from '@renderer/components/data-table/data-table-footer'
 
 interface DataTableProps {
 	data: BookRecord[]
@@ -50,26 +51,19 @@ export function DataTable({ data }: DataTableProps) {
 
 		return [
 			{
-				label: 'Search',
-				value: 'search',
-				placeholder: 'Search title, content, annotation...',
-			},
-			{
 				label: 'Genre',
 				value: 'genre',
-				options: [...genres].sort().map((v) => ({ label: v, value: v })),
+				options: generateOptions(data, 'genre'),
 			},
 			{
 				label: 'Year',
 				value: 'year',
-				options: [...years]
-					.sort((a, b) => b - a)
-					.map((v) => ({ label: String(v), value: String(v) })),
+				options: groupYears(generateOptions(data, 'year')),
 			},
 			{
 				label: 'Tags',
 				value: 'tags',
-				options: [...tags].sort().map((v) => ({ label: v, value: v })),
+				options: generateOptions(data, 'tags'),
 			},
 		]
 	}, [data])
@@ -90,7 +84,7 @@ export function DataTable({ data }: DataTableProps) {
 		onGlobalFilterChange: setGlobalFilter,
 		onPaginationChange: setPagination,
 		onRowSelectionChange: setRowSelection,
-		globalFilterFn: 'includesString',
+		globalFilterFn: filterFns.columnGlobalFilter,
 		columnResizeMode: 'onChange',
 		enableColumnResizing: true,
 		enableRowSelection: true,
@@ -130,10 +124,7 @@ export function DataTable({ data }: DataTableProps) {
 				/>
 			</DataTableContainer>
 
-			{/* <DataTableFooter table={table} selectedRows={} /> */}
-			<div className='w-full flex items-center justify-end mt-4'>
-				<DataTablePagination table={table} />
-			</div>
+			<DataTableFooter table={table} selectedRows={rowSelection} />
 		</div>
 	)
 }

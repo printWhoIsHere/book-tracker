@@ -75,7 +75,7 @@ export const columns = [
 	columnHelper.accessor('genre', {
 		header: (info) => <Header.HeaderMenu info={info} label='Жанр' />,
 		cell: (info) => info.getValue() || '-',
-		filterFn: filterFns.genreFilter,
+		filterFn: filterFns.columnGenreFilter,
 		enableGlobalFilter: false,
 		minSize: 160,
 	}),
@@ -111,7 +111,7 @@ export const columns = [
 	columnHelper.accessor('year', {
 		header: (info) => <Header.HeaderMenu info={info} label='Год' />,
 		cell: (info) => info.getValue() || '-',
-		filterFn: filterFns.yearFilter,
+		filterFn: filterFns.columnYearFilter,
 		enableGlobalFilter: false,
 		maxSize: 60,
 		minSize: 60,
@@ -121,7 +121,7 @@ export const columns = [
 	columnHelper.accessor('tags', {
 		header: (info) => <Header.HeaderMenu info={info} label='Ярлыки' />,
 		cell: ({ row }) => <Cell.CellMultiSelect array={row.original.tags || []} />,
-		filterFn: filterFns.tagsFilter,
+		filterFn: filterFns.columnTagsFilter,
 		enableGlobalFilter: false,
 		minSize: 160,
 	}),

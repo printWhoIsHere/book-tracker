@@ -25,12 +25,12 @@ export function CellActions<TData>({ row }: CellActionsProps<TData>) {
 	const bookData = row.original as BookRecord
 
 	const handleEdit = () => {
-		// Открыть модал редактирования
+		// TODO: implement edit action
 		console.log('click edit')
 	}
 
 	const handleViewDetails = () => {
-		// Открыть модал с деталями книги
+		// TODO: implement view details action
 		console.log('click details')
 	}
 
