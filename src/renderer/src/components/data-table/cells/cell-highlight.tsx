@@ -12,11 +12,12 @@ export function CellHighlight({ value, searchTerm }: CellHighlightProps) {
 		if (!value || !searchTerm) return value || ''
 
 		const text = String(value)
-		const term = searchTerm.toLowerCase().trim()
+		const rawTerms = searchTerm.toLowerCase().trim().split(/\s+/)
+		const terms = rawTerms.filter(Boolean)
 
-		if (!term) return text
+		if (!terms.length) return text
 
-		const cacheKey = `${text}:${term}`
+		const cacheKey = `${text}:${terms.join('|')}`
 
 		if (highlightCache.has(cacheKey)) {
 			return highlightCache.get(cacheKey)
@@ -24,45 +25,52 @@ export function CellHighlight({ value, searchTerm }: CellHighlightProps) {
 
 		const lowerText = text.toLowerCase()
 
-		if (!lowerText.includes(term)) {
+		const hasMatch = terms.some((term) => lowerText.includes(term))
+
+		if (!hasMatch) {
 			highlightCache.set(cacheKey, text)
 			return text
 		}
 
-		const parts: React.ReactNode[] = []
-		let lastIndex = 0
-		let index = lowerText.indexOf(term)
+		const escapedTerms = terms.map((term) =>
+			term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
+		)
+		const regex = new RegExp(`(${escapedTerms.join('|')})`, 'gi')
 
-		while (index !== -1) {
-			if (index > lastIndex) {
-				parts.push(text.substring(lastIndex, index))
+		const parts: (string | React.ReactElement)[] = []
+		let lastIndex = 0
+		let match: RegExpExecArray | null
+
+		while ((match = regex.exec(text)) !== null) {
+			if (match.index > lastIndex) {
+				parts.push(text.substring(lastIndex, match.index))
 			}
 
 			parts.push(
 				<mark
-					key={`${index}-${term}`}
-					className='bg-yellow-200/20 text-foreground rounded'
+					key={`${match.index}-${match[0]}`}
+					className='bg-yellow-200/30 text-foreground rounded-sm px-0.5'
 				>
-					{text.substring(index, index + term.length)}
+					{match[0]}
 				</mark>,
 			)
 
-			lastIndex = index + term.length
-			index = lowerText.indexOf(term, lastIndex)
+			lastIndex = regex.lastIndex
+
+			if (match[0] === '') {
+				regex.lastIndex++
+			}
 		}
 
 		if (lastIndex < text.length) {
 			parts.push(text.substring(lastIndex))
 		}
 
-		const result = <span>{parts}</span>
+		const result = parts.length > 1 ? <span>{parts}</span> : text
 
-		// Ограничиваем размер кэша
 		if (highlightCache.size > 1000) {
-			const firstKey = highlightCache.keys().next().value
-			if (firstKey) {
-				highlightCache.delete(firstKey)
-			}
+			const keysToDelete = Array.from(highlightCache.keys()).slice(0, 100)
+			keysToDelete.forEach((key) => highlightCache.delete(key))
 		}
 
 		highlightCache.set(cacheKey, result)
@@ -70,4 +78,15 @@ export function CellHighlight({ value, searchTerm }: CellHighlightProps) {
 	}, [value, searchTerm])
 
 	return highlightedText as React.ReactElement
+}
+
+export function clearHighlightCache() {
+	highlightCache.clear()
+}
+
+export function getHighlightCacheStats() {
+	return {
+		size: highlightCache.size,
+		keys: Array.from(highlightCache.keys()).slice(0, 5),
+	}
 }

@@ -90,6 +90,7 @@ export function DataTable({ data }: DataTableProps) {
 		onGlobalFilterChange: setGlobalFilter,
 		onPaginationChange: setPagination,
 		onRowSelectionChange: setRowSelection,
+		globalFilterFn: 'includesString',
 		columnResizeMode: 'onChange',
 		enableColumnResizing: true,
 		enableRowSelection: true,

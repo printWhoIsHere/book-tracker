@@ -15,6 +15,8 @@ export const columns = [
 		cell: ({ row }) => <Cell.CellSelect row={row} />,
 		enableSorting: false,
 		enableHiding: false,
+		enableColumnFilter: false,
+		enableGlobalFilter: false,
 		minSize: 32,
 		maxSize: 32,
 		size: 32,
@@ -25,24 +27,29 @@ export const columns = [
 		cell: (info) => (
 			<Cell.CellHighlight
 				value={info.getValue()}
-				searchTerm={info.table.getState().globalFilter}
+				searchTerm={info.table.getState().globalFilter || ''}
 			/>
 		),
 		enableColumnFilter: false,
+		enableGlobalFilter: true,
 		minSize: 160,
+		filterFn: 'includesString',
 	}),
+
 	columnHelper.accessor('totalVolumes', {
 		header: (info) => <Header.HeaderMenu info={info} label='Т' />,
-		cell: (info) => info.getValue(),
+		cell: (info) => info.getValue() || '-',
 		enableColumnFilter: false,
+		enableGlobalFilter: false,
 		minSize: 48,
 		maxSize: 48,
 	}),
 
 	columnHelper.accessor('currentVolume', {
 		header: (info) => <Header.HeaderMenu info={info} label='№' />,
-		cell: (info) => info.getValue(),
+		cell: (info) => info.getValue() || '-',
 		enableColumnFilter: false,
+		enableGlobalFilter: false,
 		minSize: 48,
 		maxSize: 48,
 	}),
@@ -52,16 +59,24 @@ export const columns = [
 		{
 			id: 'author',
 			header: (info) => <Header.HeaderSortable info={info} label='Автор' />,
-			cell: (info) => info.getValue(),
+			cell: (info) => (
+				<Cell.CellHighlight
+					value={info.getValue()}
+					searchTerm={info.table.getState().globalFilter || ''}
+				/>
+			),
 			enableColumnFilter: false,
+			enableGlobalFilter: true,
 			minSize: 160,
+			filterFn: 'includesString',
 		},
 	),
 
 	columnHelper.accessor('genre', {
 		header: (info) => <Header.HeaderMenu info={info} label='Жанр' />,
-		cell: (info) => info.getValue(),
+		cell: (info) => info.getValue() || '-',
 		filterFn: filterFns.genreFilter,
+		enableGlobalFilter: false,
 		minSize: 160,
 	}),
 
@@ -70,11 +85,13 @@ export const columns = [
 		cell: (info) => (
 			<Cell.CellHighlight
 				value={info.getValue()}
-				searchTerm={info.table.getState().globalFilter}
+				searchTerm={info.table.getState().globalFilter || ''}
 			/>
 		),
 		enableColumnFilter: false,
+		enableGlobalFilter: true,
 		minSize: 160,
+		filterFn: 'includesString',
 	}),
 
 	columnHelper.accessor('annotation', {
@@ -82,18 +99,20 @@ export const columns = [
 		cell: (info) => (
 			<Cell.CellHighlight
 				value={info.getValue()}
-				searchTerm={info.table.getState().globalFilter}
+				searchTerm={info.table.getState().globalFilter || ''}
 			/>
 		),
-
 		enableColumnFilter: false,
+		enableGlobalFilter: true,
 		minSize: 160,
+		filterFn: 'includesString',
 	}),
 
 	columnHelper.accessor('year', {
 		header: (info) => <Header.HeaderMenu info={info} label='Год' />,
-		cell: (info) => info.getValue(),
+		cell: (info) => info.getValue() || '-',
 		filterFn: filterFns.yearFilter,
+		enableGlobalFilter: false,
 		maxSize: 60,
 		minSize: 60,
 		size: 60,
@@ -101,8 +120,9 @@ export const columns = [
 
 	columnHelper.accessor('tags', {
 		header: (info) => <Header.HeaderMenu info={info} label='Ярлыки' />,
-		cell: ({ row }) => <Cell.CellMultiSelect array={row.original.tags} />,
+		cell: ({ row }) => <Cell.CellMultiSelect array={row.original.tags || []} />,
 		filterFn: filterFns.tagsFilter,
+		enableGlobalFilter: false,
 		minSize: 160,
 	}),
 
@@ -111,6 +131,8 @@ export const columns = [
 		cell: ({ row }) => <Cell.CellActions row={row} />,
 		enableSorting: false,
 		enableHiding: false,
+		enableColumnFilter: false,
+		enableGlobalFilter: false,
 		minSize: 64,
 		maxSize: 64,
 		size: 64,

@@ -75,11 +75,7 @@ export function DataTableToolbar<TData>({
 				)}
 			>
 				{globalField && (
-					<GlobalSearch
-						value={searchValue}
-						onChange={setSearchValue}
-						placeholder={globalField.placeholder}
-					/>
+					<GlobalSearch value={searchValue} onChange={setSearchValue} />
 				)}
 
 				{filterableFields.map((column) => {

@@ -26,12 +26,12 @@ export function CellActions<TData>({ row }: CellActionsProps<TData>) {
 
 	const handleEdit = () => {
 		// Открыть модал редактирования
-		openModal('editBook', { book: bookData })
+		console.log('click edit')
 	}
 
 	const handleViewDetails = () => {
 		// Открыть модал с деталями книги
-		openModal('bookDetails', { book: bookData })
+		console.log('click details')
 	}
 
 	const handleDelete = async () => {
