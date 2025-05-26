@@ -9,16 +9,19 @@ import {
 	ColumnSearch,
 } from '@renderer/components/data-table/filters'
 import { Button } from '@renderer/components/ui/button'
+import { Input } from '../ui/input'
 
 interface DataTableToolbarProps<TData>
 	extends React.HTMLAttributes<HTMLDivElement> {
 	table: Table<TData>
 	filterFields?: DataTableFilterField<TData>[]
+	onGlobalSearch?: (value: string) => void
 }
 
 export function DataTableToolbar<TData>({
 	table,
 	filterFields = [],
+	onGlobalSearch,
 	children,
 	className,
 	...props
@@ -26,18 +29,24 @@ export function DataTableToolbar<TData>({
 	const isFiltered = table.getState().columnFilters.length > 0
 	const isSorted = table.getState().sorting.length > 0
 
-	const { searchableColumns, filterableColumns } = useMemo(() => {
+	const { globalField, searchableFields, filterableFields } = useMemo(() => {
+		const gf = filterFields.find((f) => f.value === 'search')
 		return {
-			searchableColumns: filterFields.filter((field) => !field.options),
-			filterableColumns: filterFields.filter((field) => field.options),
+			globalField: gf,
+			searchableFields: [],
+			filterableFields: filterFields.filter(
+				(f) => f.options && f.value !== 'search',
+			),
 		}
 	}, [filterFields])
 
-	const shouldShowReset = isFiltered || isSorted
+	const shouldShowReset =
+		isFiltered || isSorted || table.getState().globalFilter
 
 	const handleReset = () => {
 		table.resetColumnFilters()
 		table.resetSorting()
+		table.resetGlobalFilter()
 	}
 
 	return (
@@ -49,34 +58,29 @@ export function DataTableToolbar<TData>({
 			{...props}
 		>
 			<div className='flex flex-1 items-center space-x-2'>
-				{searchableColumns.length > 0 &&
-					searchableColumns.map(
-						(column) =>
-							table.getColumn(column.value ? String(column.value) : '') && (
-								<ColumnSearch
-									key={String(column.value)}
-									column={table.getColumn(
-										column.value ? String(column.value) : '',
-									)}
-									placeholder={column.placeholder}
-								/>
-							),
-					)}
+				{globalField && onGlobalSearch && (
+					<Input
+						type='text'
+						value={table.getState().globalFilter ?? ''}
+						onChange={(e) => onGlobalSearch(e.target.value)}
+						placeholder={globalField.placeholder}
+						className='input input-sm'
+					/>
+				)}
 
-				{filterableColumns.length > 0 &&
-					filterableColumns.map(
-						(column) =>
-							table.getColumn(column.value ? String(column.value) : '') && (
-								<ColumnFilter
-									key={String(column.value)}
-									column={table.getColumn(
-										column.value ? String(column.value) : '',
-									)}
-									title={column.label}
-									options={column.options ?? []}
-								/>
-							),
-					)}
+				{filterableFields.map(
+					(column) =>
+						table.getColumn(column.value ? String(column.value) : '') && (
+							<ColumnFilter
+								key={String(column.value)}
+								column={table.getColumn(
+									column.value ? String(column.value) : '',
+								)}
+								title={column.label}
+								options={column.options ?? []}
+							/>
+						),
+				)}
 				{shouldShowReset && (
 					<Button
 						aria-label='Reset filters and sorting'

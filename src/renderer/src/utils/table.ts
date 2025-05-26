@@ -73,3 +73,81 @@ export function isEmpty(value: unknown): boolean {
 	if (Array.isArray(value)) return value.length === 0
 	return false
 }
+
+/**
+ * Получить уникальные значения поля из массива объектов
+ * @param items - массив объектов
+ * @param field - ключ объекта для извлечения значения
+ * @returns массив уникальных значений поля
+ */
+export function getUniqueValues<T, K extends keyof T>(
+	items: T[],
+	field: K,
+): T[K][] {
+	const allValues: T[K][] = []
+	items.forEach((item) => {
+		const v = item[field]
+		if (Array.isArray(v)) {
+			allValues.push(...v)
+		} else if (v != null) {
+			allValues.push(v)
+		}
+	})
+	return Array.from(new Set(allValues))
+}
+
+/**
+ * Сгенерировать опции для селекта или фильтрации
+ * @param items - массив объектов
+ * @param field - ключ объекта для извлечения значения
+ * @returns массив объектов { label, value }
+ */
+export function generateOptions<T, K extends keyof T>(
+	items: T[],
+	field: K,
+): Option[] {
+	return getUniqueValues(items, field)
+		.map((val) => ({ label: String(val), value: String(val) }))
+		.sort((a, b) => a.label.localeCompare(b.label))
+}
+
+/**
+ * Группирует года по интервалу и возвращает опции для фильтрации.
+ * Если в интервале только один год, возвращается `{label: '2001', value: '2001'}`,
+ * иначе `{label: '2000-2004', value: '2000-2004'}`.
+ * @param years - массив уникальных лет
+ * @param interval - размер интервала (по умолчанию 5 лет)
+ * @returns массив объектов { label, value }
+ */
+export function groupYears(array: number[] | Option[], interval = 5): Option[] {
+	const years: number[] =
+		Array.isArray(array) && array.length > 0 && typeof array[0] === 'object'
+			? (array as Option[]).map((opt) => parseInt(opt.value, 10))
+			: (array as number[])
+
+	if (!years.length) return []
+
+	const sorted = Array.from(new Set(years)).sort((a, b) => a - b)
+	const groupsMap = new Map<number, number[]>()
+
+	sorted.forEach((year) => {
+		const binStart = Math.floor(year / interval) * interval
+		if (!groupsMap.has(binStart)) {
+			groupsMap.set(binStart, [])
+		}
+		groupsMap.get(binStart)!.push(year)
+	})
+
+	const options: Option[] = []
+	Array.from(groupsMap.entries())
+		.sort((a, b) => a[0] - b[0])
+		.forEach(([start, groupVals]) => {
+			const label =
+				groupVals.length === 1
+					? `${groupVals[0]}`
+					: `${start}-${start + interval - 1}`
+			options.push({ label, value: label })
+		})
+
+	return options
+}

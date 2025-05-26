@@ -1,20 +1,16 @@
 import { Table as ReactTable } from '@tanstack/react-table'
-import {
-	Table,
-	TableHeader as TableHead,
-	TableRow,
-} from '@renderer/components/ui/table'
+import * as Table from '@renderer/components/ui/table'
 import { HeaderDefault } from '@renderer/components/data-table/headers'
 
-interface TableHeaderProps<TData> {
+interface DataTableHeaderProps<TData> {
 	table: ReactTable<TData>
 	totalTableWidth: number
 }
 
-export function TableHeader<TData>({
+export function DataTableHeader<TData>({
 	table,
 	totalTableWidth,
-}: TableHeaderProps<TData>) {
+}: DataTableHeaderProps<TData>) {
 	const tableProps = {
 		style: {
 			minWidth: `${totalTableWidth}px`,
@@ -24,16 +20,16 @@ export function TableHeader<TData>({
 	}
 
 	return (
-		<Table {...tableProps}>
-			<TableHead className='px-0 overflow-hidden'>
+		<Table.Table {...tableProps}>
+			<Table.TableHeader className='px-0 overflow-hidden'>
 				{table.getHeaderGroups().map((headerGroup) => (
-					<TableRow key={headerGroup.id} className='flex w-full'>
+					<Table.TableRow key={headerGroup.id} className='flex w-full'>
 						{headerGroup.headers.map((header) => (
 							<HeaderDefault key={header.column.id} header={header} />
 						))}
-					</TableRow>
+					</Table.TableRow>
 				))}
-			</TableHead>
-		</Table>
+			</Table.TableHeader>
+		</Table.Table>
 	)
 }

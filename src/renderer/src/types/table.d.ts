@@ -27,3 +27,9 @@ interface DataTableFilterOption<TData> {
 	filterOperator?: string
 	isMulti?: boolean
 }
+
+interface YearRange {
+	label: string
+	from: number
+	to: number
+}

@@ -1,6 +1,7 @@
 import { createColumnHelper } from '@tanstack/react-table'
 
 import { formatFullName } from '@renderer/utils/table'
+import { filterFns, multiColumnSearch } from '@renderer/utils/filters'
 import type { BookRecord } from '@renderer/types/book'
 
 import * as Header from '@renderer/components/data-table/headers'
@@ -19,34 +20,21 @@ export const columns = [
 		size: 32,
 	}),
 
-	columnHelper.display({
-		id: 'search',
-		enableColumnFilter: true,
-		filterFn: (row, columnId, filterValue) => {
-			if (!filterValue) return true
-
-			const searchTerm = String(filterValue).toLowerCase()
-			const searchableColumns = ['title', 'content', 'annotation']
-
-			return searchableColumns.some((colId) => {
-				const cellValue = row.getValue(colId)
-				return String(cellValue || '')
-					.toLowerCase()
-					.includes(searchTerm)
-			})
-		},
-		size: 0,
-	}),
-
 	columnHelper.accessor('title', {
 		header: (info) => <Header.HeaderSortable info={info} label='Название' />,
-		cell: (info) => info.getValue(),
+		cell: (info) => (
+			<Cell.CellHighlight
+				value={info.getValue()}
+				searchTerm={getSearchTerm(info.table)}
+			/>
+		),
+		enableColumnFilter: false,
 		minSize: 160,
 	}),
-
 	columnHelper.accessor('totalVolumes', {
 		header: (info) => <Header.HeaderMenu info={info} label='Т' />,
 		cell: (info) => info.getValue(),
+		enableColumnFilter: false,
 		minSize: 48,
 		maxSize: 48,
 	}),
@@ -54,6 +42,7 @@ export const columns = [
 	columnHelper.accessor('currentVolume', {
 		header: (info) => <Header.HeaderMenu info={info} label='№' />,
 		cell: (info) => info.getValue(),
+		enableColumnFilter: false,
 		minSize: 48,
 		maxSize: 48,
 	}),
@@ -64,6 +53,7 @@ export const columns = [
 			id: 'author',
 			header: (info) => <Header.HeaderSortable info={info} label='Автор' />,
 			cell: (info) => info.getValue(),
+			enableColumnFilter: false,
 			minSize: 160,
 		},
 	),
@@ -71,24 +61,38 @@ export const columns = [
 	columnHelper.accessor('genre', {
 		header: (info) => <Header.HeaderMenu info={info} label='Жанр' />,
 		cell: (info) => info.getValue(),
+		filterFn: filterFns.genreFilter,
 		minSize: 160,
 	}),
 
 	columnHelper.accessor('content', {
 		header: (info) => <Header.HeaderMenu info={info} label='Содержание' />,
-		cell: (info) => info.getValue(),
+		cell: (info) => (
+			<Cell.CellHighlight
+				value={info.getValue()}
+				searchTerm={info.getValue()}
+			/>
+		),
+		enableColumnFilter: false,
 		minSize: 160,
 	}),
 
 	columnHelper.accessor('annotation', {
 		header: (info) => <Header.HeaderMenu info={info} label='Аннотация' />,
-		cell: (info) => info.getValue(),
+		cell: (info) => (
+			<Cell.CellHighlight
+				value={info.getValue()}
+				searchTerm={getSearchTerm(info.table)}
+			/>
+		),
+		enableColumnFilter: false,
 		minSize: 160,
 	}),
 
 	columnHelper.accessor('year', {
 		header: (info) => <Header.HeaderMenu info={info} label='Год' />,
 		cell: (info) => info.getValue(),
+		filterFn: filterFns.yearFilter,
 		maxSize: 60,
 		minSize: 60,
 		size: 60,
@@ -97,6 +101,7 @@ export const columns = [
 	columnHelper.accessor('tags', {
 		header: (info) => <Header.HeaderMenu info={info} label='Ярлыки' />,
 		cell: ({ row }) => <Cell.CellMultiSelect array={row.original.tags} />,
+		filterFn: filterFns.tagsFilter,
 		minSize: 160,
 	}),
 
@@ -110,3 +115,8 @@ export const columns = [
 		size: 64,
 	}),
 ]
+
+function getSearchTerm(table: any): string {
+	const searchFilter = table.getColumn('search')?.getFilterValue()
+	return searchFilter ? String(searchFilter) : ''
+}

@@ -11,11 +11,13 @@ import {
 } from '@renderer/components/ui/pagination'
 import { cn } from '@renderer/lib/cn'
 
-interface TablePaginationProps<TData> {
+interface DataTablePaginationProps<TData> {
 	table: Table<TData>
 }
 
-export function TablePagination<TData>({ table }: TablePaginationProps<TData>) {
+export function DataTablePagination<TData>({
+	table,
+}: DataTablePaginationProps<TData>) {
 	const [inputPage, setInputPage] = useState<string>(
 		String(table.getState().pagination.pageIndex + 1),
 	)
